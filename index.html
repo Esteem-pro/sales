@@ -70,18 +70,17 @@
 
     <div id="dashboard-screen" class="hidden h-full flex flex-col w-full">
         
-        <!-- ОБЩЕПОРТАЛЬНАЯ НАВИГАЦИЯ -->
-        <nav class="bg-slate-900 text-white px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3 z-50 shrink-0">
-            <div class="flex gap-2 w-full sm:w-auto overflow-x-auto font-semibold text-sm">
-                <!-- Активная вкладка: Аналитика -->
+<!-- ОБЩЕПОРТАЛЬНАЯ НАВИГАЦИЯ -->
+        <!-- Добавлен id="portal-nav" и плавная анимация для скрытия -->
+        <nav id="portal-nav" class="bg-slate-900 text-white px-4 py-3 flex justify-between items-center gap-3 z-50 shrink-0 transition-all duration-300">
+            <!-- Убрана лишняя ширина, скрыт скроллбар для эстетики -->
+            <div class="flex gap-2 overflow-x-auto font-semibold text-sm [&::-webkit-scrollbar]:hidden">
                 <a href="index.html" class="px-4 py-2 rounded-lg whitespace-nowrap transition-colors bg-white/20 text-white">Аналитика</a>
                 <a href="catalog.html" class="px-4 py-2 rounded-lg whitespace-nowrap transition-colors hover:bg-white/10 text-slate-300">Прайс-лист</a>
                 <a href="calculator.html" class="px-4 py-2 rounded-lg whitespace-nowrap transition-colors hover:bg-white/10 text-slate-300">Доставка</a>
             </div>
-            <div class="flex items-center justify-between w-full sm:w-auto gap-4">
-                <div class="text-sm text-slate-300">Менеджер: <span id="top-username" class="font-bold text-white"></span></div>
-                <button onclick="logout()" class="text-xs bg-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white px-3 py-1.5 rounded-lg font-bold transition">Выйти</button>
-            </div>
+            <!-- Фраза "Менеджер" удалена, кнопка Выйти всегда справа -->
+            <button onclick="logout()" class="text-xs bg-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white px-4 py-2 rounded-lg font-bold transition shrink-0">Выйти</button>
         </nav>
 
         <header class="glass-header shrink-0 z-40 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -466,7 +465,6 @@
                     document.getElementById('auth-screen').classList.add('hidden');
                     document.getElementById('dashboard-screen').classList.remove('hidden');
                     
-                    document.getElementById('top-username').innerText = name;
                     document.getElementById('user-greeting').innerText = name;
                     
                     globalData = result.data;
@@ -954,6 +952,25 @@
             
             document.getElementById('global-debt-sum').innerText = formatMoney(totalDebt);
         }
+        // Логика скрытия шапки портала при скролле вниз
+        let lastScrollTop = 0;
+        const portalNav = document.getElementById('portal-nav');
+
+        // Вешаем слушатель на все области со скроллом (Лично, Динамика, Доходы)
+        document.querySelectorAll('.scroll-area').forEach(el => {
+            el.addEventListener('scroll', function() {
+                let currentScroll = this.scrollTop;
+                
+                // Если прокрутили вниз больше чем на 50px
+                if (currentScroll > lastScrollTop && currentScroll > 50) {
+                    portalNav.style.marginTop = `-${portalNav.offsetHeight}px`; // Прячем наверх
+                } else {
+                    portalNav.style.marginTop = '0px'; // Показываем обратно при скролле вверх
+                }
+                
+                lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
+            }, { passive: true });
+        });
     </script>
 </body>
 </html>
