@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Аналитика | Единый портал продавца</title>
+    <title>Дашборд | Аналитика продаж</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -84,7 +84,14 @@
 
         <header class="glass-header shrink-0 z-40 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-                <h1 class="text-2xl font-extrabold tracking-tight text-slate-900">Показатели: <span id="user-greeting" class="text-blue-600"></span></h1>
+                <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 flex flex-wrap items-center gap-2">
+                    <span>Показатели: <span id="user-greeting" class="text-blue-600"></span></span>
+                    <!-- Индикатор фоновой синхронизации -->
+                    <span id="sync-indicator" class="hidden text-[10px] font-bold text-slate-500 bg-slate-200/60 px-2 py-1 rounded-lg flex items-center gap-1.5 uppercase tracking-wider">
+                        <div class="w-3 h-3 border-2 border-slate-400 border-t-blue-600 rounded-full animate-spin"></div>
+                        Синхронизация
+                    </span>
+                </h1>
             </div>
             <div class="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
                 <div class="bg-slate-200/50 p-1 rounded-xl flex text-sm font-semibold w-full sm:w-auto overflow-x-auto">
@@ -393,20 +400,97 @@
             document.getElementById('tab-personal').innerText = capitalizedMonth;
         }
 
+        // ==========================================
+        // ГЛАВНАЯ ЛОГИКА АВТОМАТИЧЕСКОГО ВХОДА И КЭША
+        // ==========================================
         window.onload = () => {
             updateCurrentMonthUI();
+            
+            // Читаем кэш из localStorage
             const sName = localStorage.getItem('sales_dash_user');
             const sPass = localStorage.getItem('sales_dash_pass');
+            const sData = localStorage.getItem('sales_dash_data');
+
             if(sName && sPass) {
                 document.getElementById('username').value = sName;
                 document.getElementById('password').value = sPass;
-                login();
+                
+                if (sData) {
+                    // ЕСЛИ ДАННЫЕ В КЭШЕ ЕСТЬ — МГНОВЕННО ПУСКАЕМ В ДАШБОРД БЕЗ ОЖИДАНИЯ
+                    document.getElementById('auth-screen').classList.add('hidden');
+                    document.getElementById('dashboard-screen').classList.remove('hidden');
+                    document.getElementById('user-greeting').innerText = sName;
+                    
+                    globalData = JSON.parse(sData);
+                    if (typeof Chart !== 'undefined' && Chart.register) {
+                        Chart.register(ChartDataLabels);
+                    }
+                    // Рисуем графики из старых данных
+                    renderDashboard(globalData);
+                    
+                    // Тихий запрос на сервер в фоне для получения актуальных данных
+                    silentUpdate(sName, sPass);
+                } else {
+                    // Если данных в кэше нет (например, зашел первый раз после апдейта)
+                    // показываем экран загрузки
+                    login();
+                }
             }
         };
+
+        // Тихая подгрузка свежих данных на фоне
+        async function silentUpdate(name, pass) {
+            const syncEl = document.getElementById('sync-indicator');
+            if (syncEl) syncEl.classList.remove('hidden');
+            
+            try {
+                const date = new Date();
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ name: name, pass: pass, month: date.getMonth() + 1, year: date.getFullYear() })
+                });
+                
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    // Обновляем кэш
+                    localStorage.setItem('sales_dash_data', JSON.stringify(result.data));
+                    globalData = result.data;
+                    
+                    // Перерисовываем главный экран новыми данными
+                    renderDashboard(globalData);
+                    
+                    // Сбрасываем флаги вкладок, чтобы они перерендерились при переключении
+                    globalChartsInitialized = false;
+                    incomeTabInitialized = false;
+                    
+                    // Если пользователь прямо сейчас на другой вкладке, перерисовываем ее
+                    const isGlobalActive = document.getElementById('tab-global').classList.contains('bg-white');
+                    const isIncomeActive = document.getElementById('tab-income').classList.contains('bg-white');
+                    
+                    if (isGlobalActive) {
+                        initGlobalCharts();
+                        initDebtTable();
+                    } else if (isIncomeActive) {
+                        renderIncomeTab(globalData.income);
+                    }
+                } else {
+                    // Если пароль изменили на сервере — выкидываем на логин
+                    logout();
+                }
+            } catch (error) {
+                console.error('Ошибка фонового обновления:', error);
+            } finally {
+                if (syncEl) syncEl.classList.add('hidden');
+            }
+        }
 
         function logout() {
             localStorage.removeItem('sales_dash_user');
             localStorage.removeItem('sales_dash_pass');
+            localStorage.removeItem('sales_dash_data'); // Очищаем кэш при выходе
+            
             document.getElementById('dashboard-screen').classList.add('hidden');
             document.getElementById('auth-screen').classList.remove('hidden');
             document.getElementById('username').value = '';
@@ -460,6 +544,8 @@
                 if (result.status === 'success') {
                     localStorage.setItem('sales_dash_user', name);
                     localStorage.setItem('sales_dash_pass', pass);
+                    // Сохраняем данные для мгновенного входа в будущем
+                    localStorage.setItem('sales_dash_data', JSON.stringify(result.data));
                     
                     document.getElementById('auth-screen').classList.add('hidden');
                     document.getElementById('dashboard-screen').classList.remove('hidden');
@@ -657,7 +743,7 @@
             } else if (tabName === 'global') {
                 globalScreen.classList.remove('hidden');
                 btnGlobal.className = activeClass;
-                if (!globalChartsInitialized) initGlobalCharts();initDebtTable();
+                if (!globalChartsInitialized) initGlobalCharts(); initDebtTable();
             } else if (tabName === 'income') {
                 incomeScreen.classList.remove('hidden');
                 btnIncome.className = activeClass;
@@ -891,8 +977,6 @@
             renderOrdersTable(monthVal, statusVal);
         }
 
-        let isDebtTableInitialized = false;
-
         function initDebtTable() {
             if (!globalData || !globalData.income || !globalData.income.orders) return;
             const orders = globalData.income.orders;
@@ -951,26 +1035,23 @@
             
             document.getElementById('global-debt-sum').innerText = formatMoney(totalDebt);
         }
+
         // Логика скрытия шапки портала при скролле
         let lastScrollTop = 0;
         const portalNav = document.getElementById('portal-nav');
 
         if (portalNav) {
-            // В Аналитике скроллится не окно браузера, а блоки .scroll-area
             document.querySelectorAll('.scroll-area').forEach(el => {
                 el.addEventListener('scroll', function() {
                     let currentScroll = this.scrollTop;
                     let maxScroll = this.scrollHeight - this.clientHeight;
                     
-                    // 1. Защита от "резинки" iOS и бага с дёрганьем в самом низу списка
                     if (currentScroll <= 0 || currentScroll >= maxScroll - 5) {
                         return;
                     }
 
-                    // 2. Игнорируем мелкие сдвиги пальцем
                     if (Math.abs(currentScroll - lastScrollTop) <= 5) return;
 
-                    // 3. Прячем или показываем
                     if (currentScroll > lastScrollTop && currentScroll > 50) {
                         portalNav.style.marginTop = `-${portalNav.offsetHeight}px`; 
                     } else {
