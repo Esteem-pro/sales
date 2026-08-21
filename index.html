@@ -951,35 +951,14 @@
             
             document.getElementById('global-debt-sum').innerText = formatMoney(totalDebt);
         }
-        // Логика скрытия шапки портала при скролле вниз
-        let lastScrollTop = 0;
-        const portalNav = document.getElementById('portal-nav');
-
-        // Вешаем слушатель на все области со скроллом (Лично, Динамика, Доходы)
-        document.querySelectorAll('.scroll-area').forEach(el => {
-            el.addEventListener('scroll', function() {
-                let currentScroll = this.scrollTop;
-                
-                // Если прокрутили вниз больше чем на 50px
-                if (currentScroll > lastScrollTop && currentScroll > 50) {
-                    portalNav.style.marginTop = `-${portalNav.offsetHeight}px`; // Прячем наверх
-                } else {
-                    portalNav.style.marginTop = '0px'; // Показываем обратно при скролле вверх
-                }
-                
-                lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
-            }, { passive: true });
-        });
         // Логика скрытия шапки портала при скролле
         let lastScrollTop = 0;
         const portalNav = document.getElementById('portal-nav');
 
         if (portalNav) {
-            document.querySelectorAll('.scroll-area, #esCartItems').forEach(el => {
-                // Если слушаем не .scroll-area, а само окно (как в каталоге)
-                let scrollTarget = el;
-                
-                scrollTarget.addEventListener('scroll', function() {
+            // В Аналитике скроллится не окно браузера, а блоки .scroll-area
+            document.querySelectorAll('.scroll-area').forEach(el => {
+                el.addEventListener('scroll', function() {
                     let currentScroll = this.scrollTop;
                     let maxScroll = this.scrollHeight - this.clientHeight;
                     
@@ -1001,22 +980,6 @@
                     lastScrollTop = currentScroll;
                 }, { passive: true });
             });
-
-            // Поддержка скролла для каталога (где скроллится весь window/document)
-            window.addEventListener('scroll', function() {
-                let currentScroll = window.pageYOffset || document.documentElement.scrollTop;
-                let maxScroll = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-                
-                if (currentScroll <= 0 || currentScroll >= maxScroll - 5) return;
-                if (Math.abs(currentScroll - lastScrollTop) <= 5) return;
-
-                if (currentScroll > lastScrollTop && currentScroll > 50) {
-                    portalNav.style.marginTop = `-${portalNav.offsetHeight}px`; 
-                } else {
-                    portalNav.style.marginTop = '0px'; 
-                }
-                lastScrollTop = currentScroll;
-            }, { passive: true });
         }
     </script>
 </body>
