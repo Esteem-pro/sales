@@ -48,6 +48,12 @@
             .mobile-cart-sheet:not(.is-open) .cart-header-border { border-color: transparent; }
         }
     </style>
+    <!-- ПРОВЕРКА АВТОРИЗАЦИИ (Вставляем в <head>) -->
+    <script>
+        if (!localStorage.getItem('sales_dash_user') || !localStorage.getItem('sales_dash_pass')) {
+            window.location.replace('index.html');
+        }
+    </script>
 </head>
 <body>
 
