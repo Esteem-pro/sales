@@ -9,8 +9,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
 
+    <!-- ПРОВЕРКА АВТОРИЗАЦИИ -->
+    <script>
+        if (!localStorage.getItem('sales_dash_user') || !localStorage.getItem('sales_dash_pass')) {
+            window.location.replace('index.html');
+        }
+    </script>
+
     <style>
-        /* Базовые настройки для единого SPA-окружения */
         body { 
             font-family: 'Inter', sans-serif; 
             background-color: #f1f5f9; 
@@ -24,41 +30,25 @@
         }
         button, input, select, textarea { touch-action: manipulation; }
 
-        /* Кастомный скроллбар */
         .scroll-area { flex: 1; overflow-y: auto; padding-bottom: calc(env(safe-area-inset-bottom) + 120px); }
         .scroll-area::-webkit-scrollbar { width: 6px; }
         .scroll-area::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
         body.modal-open { overflow: hidden; touch-action: none; }
 
-        /* Мобильный островок калькулятора */
         @media (max-width: 768px) {
-            .mobile-cart-sheet {
-                max-height: 62px; 
-                transition: max-height 0.4s cubic-bezier(0.2, 1, 0.3, 1);
-            }
+            .mobile-cart-sheet { max-height: 62px; transition: max-height 0.4s cubic-bezier(0.2, 1, 0.3, 1); }
             .mobile-cart-sheet.is-open { max-height: 75dvh; }
-            
-            .mobile-cart-content {
-                opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
-            }
-            .mobile-cart-sheet.is-open .mobile-cart-content {
-                opacity: 1; pointer-events: auto; transition: opacity 0.3s ease 0.15s; 
-            }
+            .mobile-cart-content { opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+            .mobile-cart-sheet.is-open .mobile-cart-content { opacity: 1; pointer-events: auto; transition: opacity 0.3s ease 0.15s; }
             .mobile-cart-sheet:not(.is-open) .cart-header-border { border-color: transparent; }
         }
     </style>
-    <!-- ПРОВЕРКА АВТОРИЗАЦИИ (Вставляем в <head>) -->
-    <script>
-        if (!localStorage.getItem('sales_dash_user') || !localStorage.getItem('sales_dash_pass')) {
-            window.location.replace('index.html');
-        }
-    </script>
 </head>
 <body>
 
     <!-- ОБЩЕПОРТАЛЬНАЯ НАВИГАЦИЯ -->
-    <nav id="portal-nav" class="bg-slate-900 text-white px-3 sm:px-4 pb-3 pt-[calc(env(safe-area-inset-top,0px)+12px)] flex justify-between items-center gap-2 z-50 shrink-0 transition-all duration-300">
+    <nav id="portal-nav" class="fixed top-0 left-0 w-full bg-slate-900 text-white px-3 sm:px-4 pb-3 pt-[calc(env(safe-area-inset-top,0px)+12px)] flex justify-between items-center gap-2 z-[60] transition-transform duration-300">
         <div class="flex gap-1 sm:gap-2 font-semibold text-[13px] sm:text-sm">
             <a href="index.html" class="px-3 py-2 rounded-lg transition-colors hover:bg-white/10 text-slate-300">Аналитика</a>
             <a href="catalog.html" class="px-3 py-2 rounded-lg transition-colors hover:bg-white/10 text-slate-300">Прайс</a>
@@ -69,14 +59,21 @@
         </button>
     </nav>
 
-    <!-- ОБЛАСТЬ ПРОКРУТКИ С УМНЫМ СКРОЛЛОМ НАВИГАЦИИ -->
+    <!-- ОБЛАСТЬ ПРОКРУТКИ -->
     <div class="scroll-area flex flex-col w-full relative">
 
-        <!-- ОСНОВНОЙ КОНТЕЙНЕР (Добавлен отступ mt-6 sm:mt-8) -->
+        <!-- ОСНОВНОЙ КОНТЕЙНЕР -->
         <div class="max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8 flex flex-col md:flex-row gap-6 items-start w-full">
             
             <!-- СПИСОК ПОЗИЦИЙ -->
             <div class="flex-1 w-full">
+                <!-- Липкий заголовок (будет красиво прилипать сразу под отступом) -->
+                <div class="sticky top-3 sm:top-5 z-40 w-full pointer-events-none mb-6 sm:mb-8">
+                    <div class="relative shadow-[0_8px_30px_rgb(0,0,0,0.06)] rounded-[1.2rem] bg-white/80 backdrop-blur-xl border border-white/60 px-5 py-4 flex items-center justify-between pointer-events-auto w-full">
+                        <h1 class="font-extrabold text-slate-800 text-lg">Калькулятор доставки</h1>
+                    </div>
+                </div>
+
                 <div id="calcGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
                     <!-- Карточки генерируются через JS -->
                 </div>
@@ -87,7 +84,6 @@
                 
                 <div class="bg-white rounded-[1.2rem] md:rounded-[1.5rem] border border-slate-200/80 shadow-[0_12px_40px_-10px_rgba(0,0,0,0.15)] md:shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] flex flex-col flex-1 min-h-0 overflow-hidden">
                     
-                    <!-- Шапка виджета -->
                     <div class="cart-header-border p-4 sm:p-5 border-b border-slate-100 flex justify-between items-center bg-slate-900 md:bg-white text-white md:text-slate-900 cursor-pointer md:cursor-default transition-colors shrink-0 touch-none md:touch-auto" onclick="toggleMobileCart()">
                         <div class="flex items-center gap-2">
                             <h2 class="font-extrabold text-lg">Расчет стоимости</h2>
@@ -96,17 +92,12 @@
                         <svg id="mobile-cart-arrow" class="w-6 h-6 md:hidden transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
                     </div>
 
-                    <!-- Контент расчета -->
                     <div class="mobile-cart-content flex flex-col flex-1 overflow-hidden min-h-0">
-                        
-                        <!-- Выбранные товары -->
                         <div id="esCartItems" class="flex-1 overflow-y-auto overscroll-y-contain p-4 sm:p-5 bg-[#f1f5f9]/50">
                             <div class="text-center py-8 text-slate-400 font-medium text-sm">Добавьте позиции</div>
                         </div>
 
-                        <!-- Математика и Итого -->
                         <div class="p-4 sm:p-5 bg-white border-t border-slate-100 shrink-0">
-                            
                             <div class="space-y-2 mb-4 border-b border-dashed border-slate-200 pb-4">
                                 <div class="flex justify-between text-sm font-semibold text-slate-500">
                                     <span>Сумма позиций:</span>
@@ -117,12 +108,10 @@
                                     <span id="calcPercentSum" class="text-blue-600">+ 0 ₽</span>
                                 </div>
                             </div>
-
                             <div class="flex justify-between items-end mb-4">
                                 <span class="text-slate-500 font-bold mb-1">Итого к оплате:</span>
                                 <span id="calcTotalSum" class="text-2xl font-extrabold text-slate-900 tracking-tight">0 ₽</span>
                             </div>
-                            
                             <button class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold p-3 rounded-[1rem] transition-colors text-sm" onclick="clearCalculator(event)">
                                 Сбросить расчет
                             </button>
@@ -135,21 +124,15 @@
     </div>
 
     <script>
-        // Функция выхода из аккаунта (для единого SPA)
         function logout() {
             localStorage.removeItem('sales_dash_user');
             localStorage.removeItem('sales_dash_pass');
+            localStorage.removeItem('sales_dash_data');
             window.location.href = 'index.html';
         }
 
-        // ============================================
-        // НАСТРОЙКИ КАЛЬКУЛЯТОРА
-        // ============================================
-        
-        // Процент за доставку (0.15 = 15%)
         const DELIVERY_PERCENT = 0.15; 
         
-        // Список товаров и их базовая стоимость
         let deliveryItems = [
             { name: "2д комплект 2 ряда", price: 1000, qty: 0 },
             { name: "2д комплект 3 ряда", price: 1000, qty: 0 },
@@ -162,10 +145,6 @@
 
         const fmt = (n) => new Intl.NumberFormat('ru-RU').format(Math.round(n)) + ' ₽';
         
-        // ============================================
-        // ЛОГИКА РЕНДЕРА И РАСЧЕТОВ
-        // ============================================
-
         function renderItems() {
             const grid = document.getElementById('calcGrid');
             grid.innerHTML = '';
@@ -181,7 +160,6 @@
                     </div>
                     <div class="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
                         <span class="font-extrabold text-blue-600 text-base">${fmt(item.price * (item.qty > 0 ? item.qty : 1))}</span>
-                        
                         <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 p-1 rounded-full shadow-sm">
                             <button class="w-8 h-8 flex items-center justify-center bg-white hover:bg-slate-100 rounded-full text-slate-600 font-bold transition-colors shadow-sm text-lg" onclick="changeQty(${idx}, -1)">-</button>
                             <span class="w-6 text-center font-bold ${item.qty > 0 ? 'text-slate-900' : 'text-slate-400'} text-sm">${item.qty}</span>
@@ -198,7 +176,6 @@
             let newQty = item.qty + delta;
             if(newQty < 0) newQty = 0;
             
-            // Если добавляем самый первый товар на мобилке, показываем островок
             let totalQtyBefore = deliveryItems.reduce((sum, i) => sum + i.qty, 0);
             item.qty = newQty;
             let totalQtyAfter = deliveryItems.reduce((sum, i) => sum + i.qty, 0);
@@ -243,9 +220,7 @@
                 }
             });
 
-            if(itemsCount === 0) {
-                list.innerHTML = "<div class='text-center py-8 text-slate-400 font-medium text-sm'>Добавьте позиции</div>";
-            }
+            if(itemsCount === 0) list.innerHTML = "<div class='text-center py-8 text-slate-400 font-medium text-sm'>Добавьте позиции</div>";
 
             let percentSum = baseTotal * DELIVERY_PERCENT;
             let finalSum = baseTotal + percentSum;
@@ -256,8 +231,7 @@
 
             const badge = document.getElementById('cart-count-badge');
             if(itemsCount > 0) {
-                badge.innerText = itemsCount;
-                badge.classList.remove('hidden');
+                badge.innerText = itemsCount; badge.classList.remove('hidden');
             } else {
                 badge.classList.add('hidden');
             }
@@ -266,9 +240,7 @@
         window.clearCalculator = function(e) { 
             if(e) e.stopPropagation(); 
             deliveryItems.forEach(item => item.qty = 0);
-            renderItems();
-            updateSummary();
-            
+            renderItems(); updateSummary();
             if(window.innerWidth <= 768) {
                 document.getElementById('esCartWidget').classList.remove('is-open');
                 document.getElementById('mobile-cart-arrow').style.transform = 'rotate(0deg)';
@@ -285,27 +257,40 @@
         }
 
         // ============================================
-        // ЛОГИКА СКРЫТИЯ/ПОКАЗА НАВИГАЦИИ ПРИ СКРОЛЛЕ
+        // ЛОГИКА СКРЫТИЯ/ПОКАЗА НАВИГАЦИИ ПРИ СКРОЛЛЕ (GPU-ОПТИМИЗИРОВАННАЯ)
         // ============================================
         let lastScrollTop = 0;
         const portalNav = document.getElementById('portal-nav');
 
         if (portalNav) {
-            document.querySelectorAll('.scroll-area').forEach(el => {
-                el.addEventListener('scroll', function() {
+            const initScrollLayout = () => {
+                const navH = portalNav.offsetHeight;
+                document.querySelectorAll('.scroll-area').forEach(area => {
+                    let spacer = area.querySelector('.safe-spacer');
+                    if (!spacer) {
+                        spacer = document.createElement('div');
+                        spacer.className = 'safe-spacer shrink-0 w-full';
+                        area.insertBefore(spacer, area.firstChild);
+                    }
+                    spacer.style.height = navH + 'px';
+                });
+            };
+
+            setTimeout(initScrollLayout, 50);
+            window.addEventListener('resize', initScrollLayout);
+
+            document.querySelectorAll('.scroll-area').forEach(scrollArea => {
+                scrollArea.addEventListener('scroll', function() {
                     let currentScroll = this.scrollTop;
                     let maxScroll = this.scrollHeight - this.clientHeight;
                     
-                    if (currentScroll <= 0 || currentScroll >= maxScroll - 5) {
-                        return;
-                    }
-
+                    if (currentScroll <= 0 || currentScroll >= maxScroll - 5) return;
                     if (Math.abs(currentScroll - lastScrollTop) <= 5) return;
 
                     if (currentScroll > lastScrollTop && currentScroll > 50) {
-                        portalNav.style.marginTop = `-${portalNav.offsetHeight}px`; 
+                        portalNav.style.transform = 'translateY(-100%)'; 
                     } else {
-                        portalNav.style.marginTop = '0px'; 
+                        portalNav.style.transform = 'translateY(0)'; 
                     }
                     
                     lastScrollTop = currentScroll;
@@ -313,7 +298,6 @@
             });
         }
 
-        // Первичный рендер при загрузке
         renderItems();
         updateSummary();
 
