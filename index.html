@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Дашборд | Аналитика продаж</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -71,16 +71,15 @@
     <div id="dashboard-screen" class="hidden h-full flex flex-col w-full">
         
 <!-- ОБЩЕПОРТАЛЬНАЯ НАВИГАЦИЯ -->
-        <!-- Добавлен id="portal-nav" и плавная анимация для скрытия -->
-        <nav id="portal-nav" class="bg-slate-900 text-white px-4 py-3 flex justify-between items-center gap-3 z-50 shrink-0 transition-all duration-300">
-            <!-- Убрана лишняя ширина, скрыт скроллбар для эстетики -->
-            <div class="flex gap-2 overflow-x-auto font-semibold text-sm [&::-webkit-scrollbar]:hidden">
-                <a href="index.html" class="px-4 py-2 rounded-lg whitespace-nowrap transition-colors bg-white/20 text-white">Аналитика</a>
-                <a href="catalog.html" class="px-4 py-2 rounded-lg whitespace-nowrap transition-colors hover:bg-white/10 text-slate-300">Прайс-лист</a>
-                <a href="calculator.html" class="px-4 py-2 rounded-lg whitespace-nowrap transition-colors hover:bg-white/10 text-slate-300">Доставка</a>
+        <nav id="portal-nav" class="bg-slate-900 text-white px-3 sm:px-4 pb-3 flex justify-between items-end gap-2 z-50 shrink-0 transition-all duration-300" style="padding-top: max(env(safe-area-inset-top), 12px);">
+            <div class="flex gap-1 sm:gap-2 font-semibold text-[13px] sm:text-sm">
+                <a href="index.html" class="px-3 py-2 rounded-lg transition-colors bg-white/20 text-white">Аналитика</a>
+                <a href="catalog.html" class="px-3 py-2 rounded-lg transition-colors hover:bg-white/10 text-slate-300">Прайс</a>
+                <a href="calculator.html" class="px-3 py-2 rounded-lg transition-colors hover:bg-white/10 text-slate-300">Доставка</a>
             </div>
-            <!-- Фраза "Менеджер" удалена, кнопка Выйти всегда справа -->
-            <button onclick="logout()" class="text-xs bg-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white px-4 py-2 rounded-lg font-bold transition shrink-0">Выйти</button>
+            <button onclick="logout()" class="p-2 bg-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white rounded-lg transition shrink-0" aria-label="Выйти">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+            </button>
         </nav>
 
         <header class="glass-header shrink-0 z-40 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -971,6 +970,54 @@
                 lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
             }, { passive: true });
         });
+        // Логика скрытия шапки портала при скролле
+        let lastScrollTop = 0;
+        const portalNav = document.getElementById('portal-nav');
+
+        if (portalNav) {
+            document.querySelectorAll('.scroll-area, #esCartItems').forEach(el => {
+                // Если слушаем не .scroll-area, а само окно (как в каталоге)
+                let scrollTarget = el;
+                
+                scrollTarget.addEventListener('scroll', function() {
+                    let currentScroll = this.scrollTop;
+                    let maxScroll = this.scrollHeight - this.clientHeight;
+                    
+                    // 1. Защита от "резинки" iOS и бага с дёрганьем в самом низу списка
+                    if (currentScroll <= 0 || currentScroll >= maxScroll - 5) {
+                        return;
+                    }
+
+                    // 2. Игнорируем мелкие сдвиги пальцем
+                    if (Math.abs(currentScroll - lastScrollTop) <= 5) return;
+
+                    // 3. Прячем или показываем
+                    if (currentScroll > lastScrollTop && currentScroll > 50) {
+                        portalNav.style.marginTop = `-${portalNav.offsetHeight}px`; 
+                    } else {
+                        portalNav.style.marginTop = '0px'; 
+                    }
+                    
+                    lastScrollTop = currentScroll;
+                }, { passive: true });
+            });
+
+            // Поддержка скролла для каталога (где скроллится весь window/document)
+            window.addEventListener('scroll', function() {
+                let currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+                let maxScroll = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                
+                if (currentScroll <= 0 || currentScroll >= maxScroll - 5) return;
+                if (Math.abs(currentScroll - lastScrollTop) <= 5) return;
+
+                if (currentScroll > lastScrollTop && currentScroll > 50) {
+                    portalNav.style.marginTop = `-${portalNav.offsetHeight}px`; 
+                } else {
+                    portalNav.style.marginTop = '0px'; 
+                }
+                lastScrollTop = currentScroll;
+            }, { passive: true });
+        }
     </script>
 </body>
 </html>
