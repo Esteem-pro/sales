@@ -375,12 +375,13 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 
-    <script>
+   <script>
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzK-6RUJcQYZykSwtZWq5CawXYcrL5MGWGddzvq3HOKsFXY3Vxl5C39htR0qVhRBCzC/exec';
         let globalData = null;
 
         const formatMoney = (num) => new Intl.NumberFormat('ru-RU').format(Math.round(num || 0)) + ' ₽';
 
+        // --- УТИЛИТА LAZY LOAD ДЛЯ ГРАФИКОВ ---
         function lazyLoadChart(canvasId, renderCallback) {
             const canvas = document.getElementById(canvasId);
             if (!canvas) return;
@@ -408,9 +409,13 @@
             document.getElementById('tab-personal').innerText = capitalizedMonth;
         }
 
+        // ==========================================
+        // ГЛАВНАЯ ЛОГИКА АВТОМАТИЧЕСКОГО ВХОДА И КЭША
+        // ==========================================
         window.onload = () => {
             updateCurrentMonthUI();
             
+            // Читаем кэш из localStorage
             const sName = localStorage.getItem('sales_dash_user');
             const sPass = localStorage.getItem('sales_dash_pass');
             const sData = localStorage.getItem('sales_dash_data');
@@ -420,22 +425,31 @@
                 document.getElementById('password').value = sPass;
                 
                 if (sData) {
+                    // ЕСЛИ ДАННЫЕ В КЭШЕ ЕСТЬ — МГНОВЕННО ПУСКАЕМ В ДАШБОРД БЕЗ ОЖИДАНИЯ
                     document.getElementById('auth-screen').classList.add('hidden');
                     document.getElementById('dashboard-screen').classList.remove('hidden');
                     document.getElementById('user-greeting').innerText = sName;
                     
+                    // Важно: пересчитываем отступы после того, как дашборд стал видимым
+                    setTimeout(() => { if (window.initScrollLayout) window.initScrollLayout(); }, 50);
+
                     globalData = JSON.parse(sData);
                     if (typeof Chart !== 'undefined' && Chart.register) {
                         Chart.register(ChartDataLabels);
                     }
+                    // Рисуем графики из старых данных
                     renderDashboard(globalData);
+                    
+                    // Тихий запрос на сервер в фоне для получения актуальных данных
                     silentUpdate(sName, sPass);
                 } else {
+                    // Если данных в кэше нет
                     login();
                 }
             }
         };
 
+        // Тихая подгрузка свежих данных на фоне
         async function silentUpdate(name, pass) {
             const syncEl = document.getElementById('sync-indicator');
             if (syncEl) syncEl.classList.remove('hidden');
@@ -451,14 +465,18 @@
                 const result = await response.json();
 
                 if (result.status === 'success') {
+                    // Обновляем кэш
                     localStorage.setItem('sales_dash_data', JSON.stringify(result.data));
                     globalData = result.data;
                     
+                    // Перерисовываем главный экран новыми данными
                     renderDashboard(globalData);
                     
+                    // Сбрасываем флаги вкладок, чтобы они перерендерились при переключении
                     globalChartsInitialized = false;
                     incomeTabInitialized = false;
                     
+                    // Если пользователь прямо сейчас на другой вкладке, перерисовываем ее
                     const isGlobalActive = document.getElementById('tab-global').classList.contains('bg-white');
                     const isIncomeActive = document.getElementById('tab-income').classList.contains('bg-white');
                     
@@ -469,6 +487,7 @@
                         renderIncomeTab(globalData.income);
                     }
                 } else {
+                    // Если пароль изменили на сервере — выкидываем на логин
                     logout();
                 }
             } catch (error) {
@@ -481,7 +500,7 @@
         function logout() {
             localStorage.removeItem('sales_dash_user');
             localStorage.removeItem('sales_dash_pass');
-            localStorage.removeItem('sales_dash_data');
+            localStorage.removeItem('sales_dash_data'); // Очищаем кэш при выходе
             
             document.getElementById('dashboard-screen').classList.add('hidden');
             document.getElementById('auth-screen').classList.remove('hidden');
@@ -541,6 +560,9 @@
                     document.getElementById('auth-screen').classList.add('hidden');
                     document.getElementById('dashboard-screen').classList.remove('hidden');
                     
+                    // Пересчитываем отступы после успешного логина
+                    setTimeout(() => { if (window.initScrollLayout) window.initScrollLayout(); }, 50);
+
                     document.getElementById('user-greeting').innerText = name;
                     
                     globalData = result.data;
@@ -728,6 +750,7 @@
             globalScreen.classList.add('hidden');
             incomeScreen.classList.add('hidden');
             
+            // Сбрасываем трансформацию шапок при смене вкладки, чтобы не оказаться на новой вкладке без шапки
             const pNav = document.getElementById('portal-nav');
             const mHead = document.getElementById('main-header');
             if (pNav) pNav.style.transform = 'translateY(0)';
@@ -1033,30 +1056,37 @@
             document.getElementById('global-debt-sum').innerText = formatMoney(totalDebt);
         }
 
+        // ============================================
+        // ЛОГИКА СКРЫТИЯ/ПОКАЗА НАВИГАЦИИ ПРИ СКРОЛЛЕ (GPU-ОПТИМИЗИРОВАННАЯ)
+        // ============================================
         let lastScrollTop = 0;
         const portalNav = document.getElementById('portal-nav');
-        const extraHeader = document.getElementById('main-header'); 
+        const extraHeader = document.getElementById('main-header'); // Доп. шапка только для аналитики
+
+        // Сделали функцию глобальной, чтобы ее можно было вызывать после логина
+        window.initScrollLayout = () => {
+            if (!portalNav) return;
+            const navH = portalNav.offsetHeight;
+            const headerH = extraHeader ? extraHeader.offsetHeight : 0;
+            
+            document.documentElement.style.setProperty('--nav-height', navH + 'px');
+            
+            document.querySelectorAll('.scroll-area').forEach(area => {
+                let spacer = area.querySelector('.safe-spacer');
+                if (!spacer) {
+                    spacer = document.createElement('div');
+                    spacer.className = 'safe-spacer shrink-0 w-full';
+                    area.insertBefore(spacer, area.firstChild);
+                }
+                // Проставляем высоту спейсера
+                spacer.style.height = (navH + headerH) + 'px';
+            });
+        };
 
         if (portalNav) {
-            const initScrollLayout = () => {
-                const navH = portalNav.offsetHeight;
-                const headerH = extraHeader ? extraHeader.offsetHeight : 0;
-                
-                document.documentElement.style.setProperty('--nav-height', navH + 'px');
-                
-                document.querySelectorAll('.scroll-area').forEach(area => {
-                    let spacer = area.querySelector('.safe-spacer');
-                    if (!spacer) {
-                        spacer = document.createElement('div');
-                        spacer.className = 'safe-spacer shrink-0 w-full';
-                        area.insertBefore(spacer, area.firstChild);
-                    }
-                    spacer.style.height = (navH + headerH) + 'px';
-                });
-            };
-
-            setTimeout(initScrollLayout, 50);
-            window.addEventListener('resize', initScrollLayout);
+            // Вызываем при загрузке (когда дашборд может быть скрыт, что даст 0px)
+            setTimeout(window.initScrollLayout, 50);
+            window.addEventListener('resize', window.initScrollLayout);
 
             document.querySelectorAll('.scroll-area').forEach(scrollArea => {
                 scrollArea.addEventListener('scroll', function() {
