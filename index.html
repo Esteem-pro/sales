@@ -11,6 +11,8 @@
             font-family: 'Inter', sans-serif; 
             background-color: #f1f5f9; 
             height: 100dvh;
+            width: 100vw;
+            max-width: 100vw;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -44,7 +46,14 @@
         .badge-red { background: #fff1f2; color: #9f1239; border: 1px solid #fecdd3; }
         .badge-neutral { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
         
-        .scroll-area { flex: 1; overflow-y: auto; padding-bottom: calc(env(safe-area-inset-bottom) + 120px); }
+        /* ДОБАВЛЕНО: overflow-x: hidden для запрета качки */
+        .scroll-area { 
+            flex: 1; 
+            overflow-y: auto; 
+            overflow-x: hidden; 
+            width: 100%;
+            padding-bottom: calc(env(safe-area-inset-bottom) + 120px); 
+        }
         .scroll-area::-webkit-scrollbar { width: 6px; }
         .scroll-area::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .loader { border: 3px solid #f3f4f6; border-top: 3px solid #0ea5e9; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
@@ -68,7 +77,8 @@
         </div>
     </div>
 
-    <div id="dashboard-screen" class="hidden h-full flex flex-col w-full relative">
+    <!-- ДОБАВЛЕНО: overflow-x-hidden -->
+    <div id="dashboard-screen" class="hidden h-full flex flex-col w-full relative overflow-x-hidden">
         
         <!-- ОБЩЕПОРТАЛЬНАЯ НАВИГАЦИЯ -->
         <nav id="portal-nav" class="fixed top-0 left-0 w-full bg-slate-900 text-white px-3 sm:px-4 pb-3 pt-[calc(env(safe-area-inset-top,0px)+12px)] flex justify-between items-center gap-2 z-[60] transition-transform duration-300">
@@ -101,8 +111,8 @@
             </div>
         </header>
 
-        <main class="scroll-area" id="personal-stats-view">
-            <div class="max-w-7xl mx-auto p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <main class="scroll-area w-full" id="personal-stats-view">
+            <div class="max-w-7xl mx-auto p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 overflow-x-hidden">
                 
                 <div class="bento-card md:col-span-2 lg:col-span-2 bg-slate-900 text-white border-none shadow-xl relative overflow-hidden">
                     <span class="text-slate-400 text-sm font-medium mb-1">Суммарная выручка</span>
@@ -220,7 +230,7 @@
         </main>
 
         <div id="global-stats-screen" class="hidden scroll-area w-full">
-            <div class="max-w-7xl mx-auto p-4 sm:p-6">
+            <div class="max-w-7xl mx-auto p-4 sm:p-6 overflow-x-hidden">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
                     
                     <div class="bento-card lg:col-span-2">
@@ -305,7 +315,7 @@
         </div>
 
         <div id="income-screen" class="hidden scroll-area w-full">
-            <div class="max-w-7xl mx-auto p-4 sm:p-6 grid grid-cols-1 gap-5">
+            <div class="max-w-7xl mx-auto p-4 sm:p-6 grid grid-cols-1 gap-5 overflow-x-hidden">
                 
                 <div class="bento-card">
                     <div class="flex justify-between items-center mb-4">
@@ -318,24 +328,24 @@
 
                 <div class="bento-card overflow-hidden p-0">
                <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-white flex-col sm:flex-row gap-4">
-    <div class="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
-        <span class="metric-title mb-0">Детализация заказов</span>
-        <div id="unpaid-summary-container" class="bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1.5 rounded-xl text-xs font-bold hidden sm:inline-block">
-            Сумма ожидаемых выплат по фильтру: <span id="unpaid-summary-sum" class="text-rose-900 font-extrabold">0 ₽</span>
-        </div>
-    </div>
-    <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-        <select id="month-filter" onchange="filterOrdersTable()" class="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 outline-none font-medium min-w-[150px] w-full sm:w-auto">
-            <option value="all">За все время</option>
-        </select>
-                <select id="payment-status-filter" onchange="filterOrdersTable()" class="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 outline-none font-medium min-w-[150px] w-full sm:w-auto">
-            <option value="all">Все статусы</option>
-            <option value="paid">Выплачено</option>
-            <option value="unpaid">Ожидается</option>
-            <option value="projected">Прогноз (Тек. месяц)</option>
-        </select>
-    </div>
-</div>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
+                        <span class="metric-title mb-0">Детализация заказов</span>
+                        <div id="unpaid-summary-container" class="bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1.5 rounded-xl text-xs font-bold hidden sm:inline-block">
+                            Сумма ожидаемых выплат по фильтру: <span id="unpaid-summary-sum" class="text-rose-900 font-extrabold">0 ₽</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                        <select id="month-filter" onchange="filterOrdersTable()" class="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 outline-none font-medium min-w-[150px] w-full sm:w-auto">
+                            <option value="all">За все время</option>
+                        </select>
+                                <select id="payment-status-filter" onchange="filterOrdersTable()" class="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 outline-none font-medium min-w-[150px] w-full sm:w-auto">
+                            <option value="all">Все статусы</option>
+                            <option value="paid">Выплачено</option>
+                            <option value="unpaid">Ожидается</option>
+                            <option value="projected">Прогноз (Тек. месяц)</option>
+                        </select>
+                    </div>
+                </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm whitespace-nowrap">
                             <thead class="bg-slate-50 text-slate-500 font-medium">
@@ -718,7 +728,6 @@
             globalScreen.classList.add('hidden');
             incomeScreen.classList.add('hidden');
             
-            // Сбрасываем трансформацию шапок при смене вкладки, чтобы не оказаться на новой вкладке без шапки
             const pNav = document.getElementById('portal-nav');
             const mHead = document.getElementById('main-header');
             if (pNav) pNav.style.transform = 'translateY(0)';
@@ -1024,12 +1033,9 @@
             document.getElementById('global-debt-sum').innerText = formatMoney(totalDebt);
         }
 
-        // ============================================
-        // ЛОГИКА СКРЫТИЯ/ПОКАЗА НАВИГАЦИИ ПРИ СКРОЛЛЕ (GPU-ОПТИМИЗИРОВАННАЯ)
-        // ============================================
         let lastScrollTop = 0;
         const portalNav = document.getElementById('portal-nav');
-        const extraHeader = document.getElementById('main-header'); // Доп. шапка только для аналитики
+        const extraHeader = document.getElementById('main-header'); 
 
         if (portalNav) {
             const initScrollLayout = () => {
@@ -1039,7 +1045,6 @@
                 document.documentElement.style.setProperty('--nav-height', navH + 'px');
                 
                 document.querySelectorAll('.scroll-area').forEach(area => {
-                    // Создаем невидимый спейсер внутри скролл-контейнера
                     let spacer = area.querySelector('.safe-spacer');
                     if (!spacer) {
                         spacer = document.createElement('div');
@@ -1062,11 +1067,9 @@
                     if (Math.abs(currentScroll - lastScrollTop) <= 5) return;
 
                     if (currentScroll > lastScrollTop && currentScroll > 50) {
-                        // Скролл вниз - прячем через transform (плавно, без ререндера layout)
                         portalNav.style.transform = 'translateY(-100%)'; 
                         if (extraHeader) extraHeader.style.transform = 'translateY(calc(-1 * var(--nav-height)))';
                     } else {
-                        // Скролл вверх - показываем
                         portalNav.style.transform = 'translateY(0)'; 
                         if (extraHeader) extraHeader.style.transform = 'translateY(0)';
                     }
