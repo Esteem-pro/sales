@@ -10,8 +10,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
 
+    <!-- ПРОВЕРКА АВТОРИЗАЦИИ -->
+    <script>
+        if (!localStorage.getItem('sales_dash_user') || !localStorage.getItem('sales_dash_pass')) {
+            window.location.replace('index.html');
+        }
+    </script>
+
     <style>
-        /* Базовые настройки как в первом коде для единого SPA-окружения */
         body { 
             font-family: 'Inter', sans-serif; 
             background-color: #f1f5f9; 
@@ -25,49 +31,25 @@
         }
         button, input, select, textarea { touch-action: manipulation; }
 
-        /* Кастомный скроллбар */
         .scroll-area { flex: 1; overflow-y: auto; padding-bottom: calc(env(safe-area-inset-bottom) + 120px); }
         .scroll-area::-webkit-scrollbar { width: 6px; }
         .scroll-area::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-        /* Блокировка скролла фона при открытой модалке */
         body.modal-open { overflow: hidden; touch-action: none; }
 
-        /* Логика островков для мобильной корзины */
         @media (max-width: 768px) {
-            .mobile-cart-sheet {
-                max-height: 62px; 
-                transition: max-height 0.4s cubic-bezier(0.2, 1, 0.3, 1);
-            }
-            .mobile-cart-sheet.is-open {
-                max-height: 75dvh;
-            }
-            .mobile-cart-content {
-                opacity: 0;
-                pointer-events: none;
-                transition: opacity 0.2s ease;
-            }
-            .mobile-cart-sheet.is-open .mobile-cart-content {
-                opacity: 1;
-                pointer-events: auto;
-                transition: opacity 0.3s ease 0.15s;
-            }
-            .mobile-cart-sheet:not(.is-open) .cart-header-border {
-                border-color: transparent;
-            }
+            .mobile-cart-sheet { max-height: 62px; transition: max-height 0.4s cubic-bezier(0.2, 1, 0.3, 1); }
+            .mobile-cart-sheet.is-open { max-height: 75dvh; }
+            .mobile-cart-content { opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+            .mobile-cart-sheet.is-open .mobile-cart-content { opacity: 1; pointer-events: auto; transition: opacity 0.3s ease 0.15s; }
+            .mobile-cart-sheet:not(.is-open) .cart-header-border { border-color: transparent; }
         }
     </style>
-    <!-- ПРОВЕРКА АВТОРИЗАЦИИ (Вставляем в <head>) -->
-    <script>
-        if (!localStorage.getItem('sales_dash_user') || !localStorage.getItem('sales_dash_pass')) {
-            window.location.replace('index.html');
-        }
-    </script>
 </head>
 <body>
 
     <!-- ОБЩЕПОРТАЛЬНАЯ НАВИГАЦИЯ -->
-    <nav id="portal-nav" class="bg-slate-900 text-white px-3 sm:px-4 pb-3 pt-[calc(env(safe-area-inset-top,0px)+12px)] flex justify-between items-center gap-2 z-50 shrink-0 transition-all duration-300">
+    <nav id="portal-nav" class="fixed top-0 left-0 w-full bg-slate-900 text-white px-3 sm:px-4 pb-3 pt-[calc(env(safe-area-inset-top,0px)+12px)] flex justify-between items-center gap-2 z-[60] transition-transform duration-300">
         <div class="flex gap-1 sm:gap-2 font-semibold text-[13px] sm:text-sm">
             <a href="index.html" class="px-3 py-2 rounded-lg transition-colors hover:bg-white/10 text-slate-300">Аналитика</a>
             <a href="catalog.html" class="px-3 py-2 rounded-lg transition-colors bg-white/20 text-white">Прайс</a>
@@ -78,7 +60,7 @@
         </button>
     </nav>
 
-    <!-- ОБЛАСТЬ ПРОКРУТКИ С УМНЫМ СКРОЛЛОМ НАВИГАЦИИ -->
+    <!-- ОБЛАСТЬ ПРОКРУТКИ -->
     <div class="scroll-area flex flex-col w-full relative">
         
         <!-- ЛИПКИЙ ПОИСК -->
@@ -93,21 +75,17 @@
             </div>
         </div>
 
-        <!-- ОСНОВНОЙ КОНТЕЙНЕР -->
         <div class="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row gap-6 items-start w-full">
             
-            <!-- КАТАЛОГ -->
             <div class="flex-1 w-full">
                 <div id="esGrid" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
-                    <!-- Скелетоны при загрузке -->
                 </div>
             </div>
 
-<!-- КОРЗИНА (ОСТРОВОК) -->
-<div id="esCartWidget" class="mobile-cart-sheet md:transform-none fixed md:sticky md:top-24 bottom-4 inset-x-0 md:bottom-auto z-50 md:z-10 w-full md:w-80 lg:w-96 bg-transparent flex flex-col mx-auto px-4 sm:px-6 md:px-0 md:max-h-[calc(100vh-120px)] md:mt-0">
+            <!-- КОРЗИНА -->
+            <div id="esCartWidget" class="mobile-cart-sheet md:transform-none fixed md:sticky md:top-4 bottom-4 inset-x-0 md:bottom-auto z-50 md:z-10 w-full md:w-80 lg:w-96 bg-transparent flex flex-col mx-auto px-4 sm:px-6 md:px-0 md:max-h-[calc(100vh-100px)] md:mt-0">
                 <div class="bg-white rounded-[1.2rem] md:rounded-[1.5rem] border border-slate-200/80 shadow-[0_12px_40px_-10px_rgba(0,0,0,0.15)] md:shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] flex flex-col flex-1 min-h-0 overflow-hidden">
                     
-                    <!-- Шапка корзины -->
                     <div class="cart-header-border p-4 sm:p-5 border-b border-slate-100 flex justify-between items-center bg-slate-900 md:bg-white text-white md:text-slate-900 cursor-pointer md:cursor-default transition-colors shrink-0 touch-none md:touch-auto" onclick="toggleMobileCart()">
                         <div class="flex items-center gap-2">
                             <h2 class="font-extrabold text-lg">Корзина</h2>
@@ -116,13 +94,10 @@
                         <svg id="mobile-cart-arrow" class="w-6 h-6 md:hidden transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
                     </div>
 
-                    <!-- Контент корзины -->
                     <div class="mobile-cart-content flex flex-col flex-1 overflow-hidden min-h-0">
                         <div id="esCartItems" class="flex-1 overflow-y-auto overscroll-y-contain p-4 bg-[#f1f5f9]/50">
                             <div class="text-center py-8 text-slate-400 font-medium text-sm">Корзина пуста</div>
                         </div>
-
-                        <!-- Подвал корзины -->
                         <div class="p-4 sm:p-5 bg-white border-t border-slate-100 shrink-0">
                             <div class="flex justify-between items-center mb-1 text-sm font-semibold">
                                 <span class="text-slate-500">Доход продавца:</span>
@@ -132,7 +107,6 @@
                                 <span class="text-slate-500 font-semibold mb-1">Итого:</span>
                                 <span id="esTotalSum" class="text-2xl font-extrabold text-slate-900 tracking-tight">0 ₽</span>
                             </div>
-                            
                             <button class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold p-3 rounded-[1rem] transition-colors text-sm" onclick="clearCart(event)">
                                 Очистить корзину
                             </button>
@@ -143,7 +117,7 @@
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО ТОВАРА -->
+    <!-- МОДАЛЬНОЕ ОКНО -->
     <div id="esModal" class="fixed top-0 left-0 w-full h-[100dvh] bg-slate-900/40 backdrop-blur-sm z-[100] hidden items-center justify-center p-4 sm:p-6">
         <div class="bg-white rounded-[1.5rem] shadow-2xl max-w-lg w-full flex flex-col max-h-[85dvh] overflow-hidden transform transition-all relative">
             <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-start bg-slate-50/50 shrink-0">
@@ -182,16 +156,13 @@
     </div>
 
     <script>
-        // Функция выхода из аккаунта (для единого SPA)
         function logout() {
             localStorage.removeItem('sales_dash_user');
             localStorage.removeItem('sales_dash_pass');
+            localStorage.removeItem('sales_dash_data');
             window.location.href = 'index.html';
         }
 
-        // ============================================
-        // НАСТРОЙКИ КОЛОНОК И URL
-        // ============================================
         const COL_NAME = 0;   // A
         const COL_PRICE = 3;  // D
         const COL_INCOME = 7; // H
@@ -220,9 +191,6 @@
             lastTouchEnd = now;
         }, false);
 
-        // ============================================
-        // ИНИЦИАЛИЗАЦИЯ
-        // ============================================
         function renderSkeleton() {
             const grid = document.getElementById('esGrid');
             grid.innerHTML = "";
@@ -324,9 +292,6 @@
             }
         }
 
-        // ============================================
-        // ЛОГИКА МОДАЛЬНОГО ОКНА
-        // ============================================
         function openModalFromCatalog(idx) {
             let saved = catalogMemory[idx];
             if (saved) {
@@ -440,10 +405,7 @@
             document.body.classList.remove('modal-open'); 
         }
 
-        window.selectBase = function(i) {
-            currentSelection.baseIdx = i;
-            renderModalContent(); 
-        }
+        window.selectBase = function(i) { currentSelection.baseIdx = i; renderModalContent(); }
 
         window.changeBaseQty = function(delta) {
             let newQty = currentSelection.baseQty + delta;
@@ -464,13 +426,11 @@
             let span = document.getElementById(`esAddonQty_${idx}`);
             span.innerText = newQty;
             if(newQty > 0) {
-                span.classList.remove('text-slate-400'); 
-                span.classList.add('text-slate-900');
+                span.classList.remove('text-slate-400'); span.classList.add('text-slate-900');
                 span.parentElement.parentElement.classList.add('border-blue-400', 'bg-blue-50/70', 'shadow-sm');
                 span.parentElement.parentElement.classList.remove('border-slate-200', 'bg-white');
             } else {
-                span.classList.add('text-slate-400'); 
-                span.classList.remove('text-slate-900');
+                span.classList.add('text-slate-400'); span.classList.remove('text-slate-900');
                 span.parentElement.parentElement.classList.remove('border-blue-400', 'bg-blue-50/70', 'shadow-sm');
                 span.parentElement.parentElement.classList.add('border-slate-200', 'bg-white');
             }
@@ -480,8 +440,7 @@
         function updateCalc() {
             let group = database[currentSelection.groupIdx];
             let base = group.items.length ? group.items[currentSelection.baseIdx] : {price:0};
-            let total = 0;
-            let percentStr = "";
+            let total = 0; let percentStr = "";
 
             if(base.isPercent) percentStr = ` + ${base.price}%`;
             else total += base.price * currentSelection.baseQty;
@@ -494,9 +453,6 @@
             document.getElementById('esModalPrice').innerText = fmt(total) + percentStr;
         }
 
-        // ============================================
-        // ЛОГИКА КОРЗИНЫ
-        // ============================================
         function confirmAddToCart() {
             let group = database[currentSelection.groupIdx];
             let baseItem = group.items.length ? group.items[currentSelection.baseIdx] : {name:"Товар", price:0, income:0};
@@ -510,9 +466,7 @@
                 baseQty: currentSelection.baseQty, addons: {...currentSelection.addons}
             };
 
-            let newItem = {
-                title: group.title, base: baseItem, baseQty: currentSelection.baseQty, addons: selectedAddons
-            };
+            let newItem = { title: group.title, base: baseItem, baseQty: currentSelection.baseQty, addons: selectedAddons };
 
             if(currentSelection.mode === 'edit') cart[currentSelection.cartIdx] = newItem;
             else cart.push(newItem);
@@ -523,30 +477,17 @@
             if(window.innerWidth <= 768 && cart.length === 1) {
                 const widget = document.getElementById('esCartWidget');
                 const arrow = document.getElementById('mobile-cart-arrow');
-                
                 widget.classList.add('is-open');
                 arrow.style.transform = 'rotate(180deg)';
-                
-                setTimeout(() => {
-                    widget.classList.remove('is-open');
-                    arrow.style.transform = 'rotate(0deg)';
-                }, 2500);
+                setTimeout(() => { widget.classList.remove('is-open'); arrow.style.transform = 'rotate(0deg)'; }, 2500);
             }
         }
 
         function renderCart() {
             let fixedSum = 0, fixedInc = 0;
             cart.forEach(c => {
-                if(!c.base.isPercent) {
-                    fixedSum += c.base.price * c.baseQty;
-                    fixedInc += c.base.income * c.baseQty;
-                }
-                c.addons.forEach(a => {
-                    if(!a.isPercent) {
-                        fixedSum += a.price * a.qty;
-                        fixedInc += a.income * a.qty;
-                    }
-                });
+                if(!c.base.isPercent) { fixedSum += c.base.price * c.baseQty; fixedInc += c.base.income * c.baseQty; }
+                c.addons.forEach(a => { if(!a.isPercent) { fixedSum += a.price * a.qty; fixedInc += a.income * a.qty; } });
             });
 
             let total = fixedSum, totalInc = fixedInc;
@@ -554,34 +495,24 @@
             list.innerHTML = "";
 
             cart.forEach((c, idx) => {
-                let itemTotalCost = 0; 
-                let basePriceText = "";
-
+                let itemTotalCost = 0; let basePriceText = "";
                 if(c.base.isPercent) {
-                    let oneItemVal = fixedSum * (c.base.price / 100);
-                    let allItemsVal = oneItemVal * c.baseQty;
-                    total += allItemsVal;
-                    totalInc += (fixedSum * (c.base.income / 100)) * c.baseQty;
-                    itemTotalCost = allItemsVal;
-                    basePriceText = `${c.base.price}% (${fmt(oneItemVal)} x ${c.baseQty})`;
+                    let oneItemVal = fixedSum * (c.base.price / 100); let allItemsVal = oneItemVal * c.baseQty;
+                    total += allItemsVal; totalInc += (fixedSum * (c.base.income / 100)) * c.baseQty;
+                    itemTotalCost = allItemsVal; basePriceText = `${c.base.price}% (${fmt(oneItemVal)} x ${c.baseQty})`;
                 } else {
-                    itemTotalCost = c.base.price * c.baseQty;
-                    basePriceText = `${fmt(c.base.price)} x ${c.baseQty}`;
+                    itemTotalCost = c.base.price * c.baseQty; basePriceText = `${fmt(c.base.price)} x ${c.baseQty}`;
                 }
 
                 let addonsHtml = "";
                 c.addons.forEach(a => {
                     let aText = "", aCost = 0;
                     if(a.isPercent) {
-                        let oneVal = fixedSum * (a.price / 100);
-                        let allVal = oneVal * a.qty;
-                        total += allVal;
-                        totalInc += (fixedSum * (a.income / 100)) * a.qty;
-                        aCost = allVal;
-                        aText = `${a.price}% (${fmt(oneVal)}) x ${a.qty}`;
+                        let oneVal = fixedSum * (a.price / 100); let allVal = oneVal * a.qty;
+                        total += allVal; totalInc += (fixedSum * (a.income / 100)) * a.qty;
+                        aCost = allVal; aText = `${a.price}% (${fmt(oneVal)}) x ${a.qty}`;
                     } else {
-                        aCost = a.price * a.qty;
-                        aText = `${fmt(a.price)} x ${a.qty}`;
+                        aCost = a.price * a.qty; aText = `${fmt(a.price)} x ${a.qty}`;
                     }
                     itemTotalCost += aCost;
                     addonsHtml += `<div class="text-xs text-slate-500 mb-0.5"><span class="text-slate-400">+</span> ${esc(a.name)}: ${aText}</div>`;
@@ -607,33 +538,22 @@
             });
             
             if(cart.length===0) list.innerHTML = "<div class='text-center py-8 text-slate-400 font-medium text-sm'>Корзина пуста</div>";
-
             document.getElementById('esTotalSum').innerText = fmt(total);
             document.getElementById('esTotalIncome').innerText = fmt(totalInc);
             
             const badge = document.getElementById('cart-count-badge');
-            if(cart.length > 0) {
-                badge.innerText = cart.length;
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
+            if(cart.length > 0) { badge.innerText = cart.length; badge.classList.remove('hidden'); } 
+            else { badge.classList.add('hidden'); }
         }
 
         window.removeFromCart = function(e, i) { 
-            e.stopPropagation(); 
-            let item = cart[i];
-            let groupIdx = database.findIndex(g => g.title === item.title);
+            e.stopPropagation(); let item = cart[i]; let groupIdx = database.findIndex(g => g.title === item.title);
             if (groupIdx !== -1) delete catalogMemory[groupIdx];
-            cart.splice(i, 1); 
-            renderCart(); 
+            cart.splice(i, 1); renderCart(); 
         }
 
         window.clearCart = function(e) { 
-            if(e) e.stopPropagation(); 
-            cart = []; 
-            catalogMemory = {}; 
-            renderCart(); 
+            if(e) e.stopPropagation(); cart = []; catalogMemory = {}; renderCart(); 
             if(window.innerWidth <= 768) {
                 document.getElementById('esCartWidget').classList.remove('is-open');
                 document.getElementById('mobile-cart-arrow').style.transform = 'rotate(0deg)';
@@ -652,27 +572,41 @@
         document.getElementById('esSearch').addEventListener('input', (e) => renderCatalog(e.target.value));
 
         // ============================================
-        // ЛОГИКА СКРЫТИЯ/ПОКАЗА НАВИГАЦИИ ПРИ СКРОЛЛЕ
+        // ЛОГИКА СКРЫТИЯ/ПОКАЗА НАВИГАЦИИ ПРИ СКРОЛЛЕ (GPU-ОПТИМИЗИРОВАННАЯ)
         // ============================================
         let lastScrollTop = 0;
         const portalNav = document.getElementById('portal-nav');
 
         if (portalNav) {
-            document.querySelectorAll('.scroll-area').forEach(el => {
-                el.addEventListener('scroll', function() {
+            const initScrollLayout = () => {
+                const navH = portalNav.offsetHeight;
+                
+                document.querySelectorAll('.scroll-area').forEach(area => {
+                    let spacer = area.querySelector('.safe-spacer');
+                    if (!spacer) {
+                        spacer = document.createElement('div');
+                        spacer.className = 'safe-spacer shrink-0 w-full';
+                        area.insertBefore(spacer, area.firstChild);
+                    }
+                    spacer.style.height = navH + 'px';
+                });
+            };
+
+            setTimeout(initScrollLayout, 50);
+            window.addEventListener('resize', initScrollLayout);
+
+            document.querySelectorAll('.scroll-area').forEach(scrollArea => {
+                scrollArea.addEventListener('scroll', function() {
                     let currentScroll = this.scrollTop;
                     let maxScroll = this.scrollHeight - this.clientHeight;
                     
-                    if (currentScroll <= 0 || currentScroll >= maxScroll - 5) {
-                        return;
-                    }
-
+                    if (currentScroll <= 0 || currentScroll >= maxScroll - 5) return;
                     if (Math.abs(currentScroll - lastScrollTop) <= 5) return;
 
                     if (currentScroll > lastScrollTop && currentScroll > 50) {
-                        portalNav.style.marginTop = `-${portalNav.offsetHeight}px`; 
+                        portalNav.style.transform = 'translateY(-100%)'; 
                     } else {
-                        portalNav.style.marginTop = '0px'; 
+                        portalNav.style.transform = 'translateY(0)'; 
                     }
                     
                     lastScrollTop = currentScroll;
