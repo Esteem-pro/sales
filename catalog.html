@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Портал | Прайс-лист</title>
+    <title>Прайс-лист | Единый портал продавца</title>
     
     <!-- Шрифты и библиотеки -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -11,75 +11,72 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
 
     <style>
-        /* Базовые настройки */
+        /* Базовые настройки как в первом коде для единого SPA-окружения */
         body { 
             font-family: 'Inter', sans-serif; 
+            background-color: #f1f5f9; 
             color: #0f172a; 
+            height: 100dvh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
             touch-action: manipulation;
             -webkit-font-smoothing: antialiased;
         }
         button, input, select, textarea { touch-action: manipulation; }
 
         /* Кастомный скроллбар */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .scroll-area { flex: 1; overflow-y: auto; padding-bottom: calc(env(safe-area-inset-bottom) + 120px); }
+        .scroll-area::-webkit-scrollbar { width: 6px; }
+        .scroll-area::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
         /* Блокировка скролла фона при открытой модалке */
         body.modal-open { overflow: hidden; touch-action: none; }
 
-        /* Анимация загрузки */
-        .loader { border: 3px solid #f3f4f6; border-top: 3px solid #0ea5e9; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Логика мобильной корзины */
+        /* Логика островков для мобильной корзины */
         @media (max-width: 768px) {
             .mobile-cart-sheet {
                 max-height: 62px; 
                 transition: max-height 0.4s cubic-bezier(0.2, 1, 0.3, 1);
             }
-            .mobile-cart-sheet.is-open { max-height: 75dvh; }
-            .mobile-cart-content { opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
-            .mobile-cart-sheet.is-open .mobile-cart-content { opacity: 1; pointer-events: auto; transition: opacity 0.3s ease 0.15s; }
-            .mobile-cart-sheet:not(.is-open) .cart-header-border { border-color: transparent; }
+            .mobile-cart-sheet.is-open {
+                max-height: 75dvh;
+            }
+            .mobile-cart-content {
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.2s ease;
+            }
+            .mobile-cart-sheet.is-open .mobile-cart-content {
+                opacity: 1;
+                pointer-events: auto;
+                transition: opacity 0.3s ease 0.15s;
+            }
+            .mobile-cart-sheet:not(.is-open) .cart-header-border {
+                border-color: transparent;
+            }
         }
     </style>
 </head>
-<!-- Большой отступ снизу с учетом системной панели iPhone/Android -->
-<body class="bg-[#f1f5f9] min-h-[100dvh] relative pb-[calc(env(safe-area-inset-bottom)+120px)] md:pb-8">
+<body>
 
-    <!-- ЭКРАН АВТОРИЗАЦИИ (ЕДИНЫЙ) -->
-    <div id="auth-screen" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-cyan-400"></div>
-            <h2 class="text-2xl font-extrabold mt-2 text-slate-900">Вход в систему</h2>
-            <p class="text-slate-500 text-sm mb-6">Единый портал продавца</p>
-            <input type="text" id="username" placeholder="Имя менеджера" class="w-full mb-3 p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 outline-none">
-            <input type="password" id="password" placeholder="Пароль" class="w-full mb-6 p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 outline-none">
-            <button onclick="login()" class="w-full bg-slate-900 text-white p-3.5 rounded-xl font-bold flex justify-center items-center h-14 transition hover:bg-slate-800">
-                <span id="login-text">Войти</span>
-                <div id="login-loader" class="loader hidden"></div>
-            </button>
-            <p id="auth-error" class="text-rose-500 text-sm mt-4 text-center hidden font-medium"></p>
+    <!-- ОБЩЕПОРТАЛЬНАЯ НАВИГАЦИЯ -->
+    <nav id="portal-nav" class="bg-slate-900 text-white px-3 sm:px-4 pb-3 pt-[calc(env(safe-area-inset-top,0px)+12px)] flex justify-between items-center gap-2 z-50 shrink-0 transition-all duration-300">
+        <div class="flex gap-1 sm:gap-2 font-semibold text-[13px] sm:text-sm">
+            <a href="index.html" class="px-3 py-2 rounded-lg transition-colors hover:bg-white/10 text-slate-300">Аналитика</a>
+            <a href="catalog.html" class="px-3 py-2 rounded-lg transition-colors bg-white/20 text-white">Прайс</a>
+            <a href="calculator.html" class="px-3 py-2 rounded-lg transition-colors hover:bg-white/10 text-slate-300">Доставка</a>
         </div>
-    </div>
+        <button onclick="logout()" class="p-2 bg-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white rounded-lg transition shrink-0" aria-label="Выйти">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+        </button>
+    </nav>
 
-    <!-- ОСНОВНОЙ КОНТЕНТ (СКРЫТ ДО АВТОРИЗАЦИИ) -->
-    <div id="dashboard-screen" class="hidden flex-col w-full h-full">
-
-        <!-- ОБЩЕПОРТАЛЬНАЯ НАВИГАЦИЯ -->
-        <nav id="portal-nav" class="sticky top-0 bg-slate-900 text-white px-3 sm:px-4 pb-3 pt-[calc(env(safe-area-inset-top,0px)+12px)] flex justify-between items-center gap-2 z-[60] shrink-0 transition-all duration-300">
-            <div class="flex gap-1 sm:gap-2 font-semibold text-[13px] sm:text-sm">
-                <a href="index.html" class="px-3 py-2 rounded-lg transition-colors hover:bg-white/10 text-slate-300">Аналитика</a>
-                <a href="catalog.html" class="px-3 py-2 rounded-lg transition-colors bg-white/20 text-white">Прайс</a>
-                <a href="calculator.html" class="px-3 py-2 rounded-lg transition-colors hover:bg-white/10 text-slate-300">Доставка</a>
-            </div>
-            <button onclick="logout()" class="p-2 bg-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white rounded-lg transition shrink-0" aria-label="Выйти">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-            </button>
-        </nav>
-
+    <!-- ОБЛАСТЬ ПРОКРУТКИ С УМНЫМ СКРОЛЛОМ НАВИГАЦИИ -->
+    <div class="scroll-area flex flex-col w-full relative">
+        
         <!-- ЛИПКИЙ ПОИСК -->
-        <div class="sticky top-3 sm:top-5 z-40 w-full pointer-events-none mb-6 sm:mb-8 mt-4 sm:mt-6">
+        <div class="sticky top-3 sm:top-5 z-40 w-full pointer-events-none mb-6 sm:mb-8">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 pointer-events-auto w-full">
                 <div class="relative shadow-[0_8px_30px_rgb(0,0,0,0.06)] rounded-[1.2rem]">
                     <input type="text" id="esSearch" 
@@ -90,20 +87,21 @@
             </div>
         </div>
 
-        <!-- КАТАЛОГ И КОРЗИНА -->
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row gap-6 items-start w-full relative">
+        <!-- ОСНОВНОЙ КОНТЕЙНЕР -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row gap-6 items-start w-full">
             
+            <!-- КАТАЛОГ -->
             <div class="flex-1 w-full">
                 <div id="esGrid" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
                     <!-- Скелетоны при загрузке -->
                 </div>
             </div>
 
-            <!-- КОРЗИНА -->
-            <div id="esCartWidget" class="mobile-cart-sheet md:transform-none fixed md:sticky md:top-[106px] bottom-4 inset-x-0 md:bottom-auto z-50 md:z-10 w-full md:w-80 lg:w-96 bg-transparent flex flex-col mx-auto px-4 sm:px-6 md:px-0 md:max-h-[calc(100vh-130px)] md:mt-0" style="margin-bottom: env(safe-area-inset-bottom);">
-                
+            <!-- КОРЗИНА (ОСТРОВОК) -->
+            <div id="esCartWidget" class="mobile-cart-sheet md:transform-none fixed md:sticky md:top-4 bottom-4 inset-x-0 md:bottom-auto z-50 md:z-10 w-full md:w-80 lg:w-96 bg-transparent flex flex-col mx-auto px-4 sm:px-6 md:px-0 md:max-h-[calc(100vh-100px)] md:mt-0">
                 <div class="bg-white rounded-[1.2rem] md:rounded-[1.5rem] border border-slate-200/80 shadow-[0_12px_40px_-10px_rgba(0,0,0,0.15)] md:shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] flex flex-col flex-1 min-h-0 overflow-hidden">
                     
+                    <!-- Шапка корзины -->
                     <div class="cart-header-border p-4 sm:p-5 border-b border-slate-100 flex justify-between items-center bg-slate-900 md:bg-white text-white md:text-slate-900 cursor-pointer md:cursor-default transition-colors shrink-0 touch-none md:touch-auto" onclick="toggleMobileCart()">
                         <div class="flex items-center gap-2">
                             <h2 class="font-extrabold text-lg">Корзина</h2>
@@ -112,11 +110,13 @@
                         <svg id="mobile-cart-arrow" class="w-6 h-6 md:hidden transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
                     </div>
 
+                    <!-- Контент корзины -->
                     <div class="mobile-cart-content flex flex-col flex-1 overflow-hidden min-h-0">
                         <div id="esCartItems" class="flex-1 overflow-y-auto overscroll-y-contain p-4 bg-[#f1f5f9]/50">
                             <div class="text-center py-8 text-slate-400 font-medium text-sm">Корзина пуста</div>
                         </div>
 
+                        <!-- Подвал корзины -->
                         <div class="p-4 sm:p-5 bg-white border-t border-slate-100 shrink-0">
                             <div class="flex justify-between items-center mb-1 text-sm font-semibold">
                                 <span class="text-slate-500">Доход продавца:</span>
@@ -138,9 +138,8 @@
     </div>
 
     <!-- МОДАЛЬНОЕ ОКНО ТОВАРА -->
-    <div id="esModal" class="fixed top-0 left-0 w-full h-[100dvh] bg-slate-900/40 backdrop-blur-sm z-[100] hidden items-center justify-center p-4 sm:p-6" style="padding-top: env(safe-area-inset-top);">
+    <div id="esModal" class="fixed top-0 left-0 w-full h-[100dvh] bg-slate-900/40 backdrop-blur-sm z-[100] hidden items-center justify-center p-4 sm:p-6">
         <div class="bg-white rounded-[1.5rem] shadow-2xl max-w-lg w-full flex flex-col max-h-[85dvh] overflow-hidden transform transition-all relative">
-            
             <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-start bg-slate-50/50 shrink-0">
                 <h3 id="esModalTitle" class="font-extrabold text-slate-900 text-lg pr-4 leading-snug">Товар</h3>
                 <button onclick="closeModal()" class="w-8 h-8 flex items-center justify-center bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-full transition-colors shrink-0 mt-0.5">
@@ -148,7 +147,7 @@
                 </button>
             </div>
             
-            <div class="p-5 overflow-y-auto flex-1 overscroll-contain">
+            <div class="p-5 overflow-y-auto flex-1">
                 <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Комплектация (База)</div>
                 <div id="esBasesList" class="space-y-2"></div>
                 
@@ -177,71 +176,19 @@
     </div>
 
     <script>
-        // ============================================
-        // АВТОРИЗАЦИЯ И НАВИГАЦИЯ
-        // ============================================
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzK-6RUJcQYZykSwtZWq5CawXYcrL5MGWGddzvq3HOKsFXY3Vxl5C39htR0qVhRBCzC/exec';
-        
-        window.onload = () => {
-            const sName = localStorage.getItem('sales_dash_user');
-            const sPass = localStorage.getItem('sales_dash_pass');
-            if(sName && sPass) {
-                document.getElementById('username').value = sName;
-                document.getElementById('password').value = sPass;
-                login();
-            }
-        };
-
-        async function login() {
-            const name = document.getElementById('username').value.trim();
-            const pass = document.getElementById('password').value.trim();
-            const errorEl = document.getElementById('auth-error');
-            const btnLoader = document.getElementById('login-loader');
-            const btnText = document.getElementById('login-text');
-
-            if (!name || !pass) { errorEl.innerText = 'Введите логин и пароль'; errorEl.classList.remove('hidden'); return; }
-            errorEl.classList.add('hidden'); btnText.classList.add('hidden'); btnLoader.classList.remove('hidden');
-
-            try {
-                // В Каталоге отправляем просто запрос авторизации
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ name: name, pass: pass }) 
-                });
-                const result = await response.json();
-
-                if (result.status === 'success') {
-                    localStorage.setItem('sales_dash_user', name); 
-                    localStorage.setItem('sales_dash_pass', pass);
-                    
-                    document.getElementById('auth-screen').classList.add('hidden');
-                    document.getElementById('dashboard-screen').classList.remove('hidden');
-                    document.getElementById('dashboard-screen').classList.add('flex'); // Важно для Flex-layout
-                    
-                    // Загружаем данные таблицы
-                    if(typeof Papa === 'undefined') { setTimeout(initApp, 1000); } else { initApp(); }
-                } else { throw new Error(result.message || 'Ошибка авторизации'); }
-            } catch (error) {
-                errorEl.innerText = error.message; errorEl.classList.remove('hidden');
-            } finally {
-                btnText.classList.remove('hidden'); btnLoader.classList.add('hidden');
-            }
-        }
-
+        // Функция выхода из аккаунта (для единого SPA)
         function logout() {
-            localStorage.removeItem('sales_dash_user'); 
+            localStorage.removeItem('sales_dash_user');
             localStorage.removeItem('sales_dash_pass');
-            document.getElementById('dashboard-screen').classList.add('hidden'); 
-            document.getElementById('dashboard-screen').classList.remove('flex');
-            document.getElementById('auth-screen').classList.remove('hidden');
+            window.location.href = 'index.html';
         }
 
         // ============================================
-        // ЛОГИКА КАТАЛОГА (Google Sheets)
+        // НАСТРОЙКИ КОЛОНОК И URL
         // ============================================
-        const COL_NAME = 0;   
-        const COL_PRICE = 3;  
-        const COL_INCOME = 7; 
+        const COL_NAME = 0;   // A
+        const COL_PRICE = 3;  // D
+        const COL_INCOME = 7; // H
         
         const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQcZaUg1LNjHtFku3mI5B6_xYDitZkRM94rlESJLKVqpMeMHkwqRUelOGkbuZ365Znq296r3zixxONC/pub?gid=0&single=true&output=csv" + "&t=" + new Date().getTime();
         
@@ -254,9 +201,22 @@
         
         const esc = (str) => {
             if (!str) return '';
-            return String(str).replace(/[&<>'"]/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[match]);
+            return String(str).replace(/[&<>'"]/g, match => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+            })[match]);
         };
 
+        document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            let now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) { event.preventDefault(); }
+            lastTouchEnd = now;
+        }, false);
+
+        // ============================================
+        // ИНИЦИАЛИЗАЦИЯ
+        // ============================================
         function renderSkeleton() {
             const grid = document.getElementById('esGrid');
             grid.innerHTML = "";
@@ -271,6 +231,8 @@
             }
         }
 
+        if(typeof Papa === 'undefined') { setTimeout(initApp, 1000); } else { initApp(); }
+
         function initApp() {
             renderSkeleton();
             Papa.parse(SHEET_URL, {
@@ -283,7 +245,9 @@
         function parsePrice(str) {
             if(!str) return { val:0, isPercent:false };
             let s = str.toString().trim();
-            if(s.includes('%')) { return { val: parseFloat(s.replace(',','.').replace(/[^0-9.]/g, '')), isPercent: true }; }
+            if(s.includes('%')) {
+                return { val: parseFloat(s.replace(',','.').replace(/[^0-9.]/g, '')), isPercent: true };
+            }
             if(s.toLowerCase().includes('запрос')) return { val:0, isPercent:false, isRequest:true };
             let clean = s.replace(/[^0-9]/g, ''); 
             return { val: parseInt(clean) || 0, isPercent: false };
@@ -300,9 +264,13 @@
                 if(name === "") return;
 
                 let priceRaw = row[COL_PRICE];
-                let isHeader = (!priceRaw || priceRaw.trim() === "") && !name.toLowerCase().includes("позиция") && !name.toLowerCase().includes("себестоимость");
+                let isHeader = (!priceRaw || priceRaw.trim() === "") 
+                               && !name.toLowerCase().includes("позиция")
+                               && !name.toLowerCase().includes("себестоимость");
 
-                if(name.toLowerCase().includes("доп. элементы")) { isAddons = true; return; }
+                if(name.toLowerCase().includes("доп. элементы")) {
+                    isAddons = true; return; 
+                }
 
                 if(isHeader) {
                     currentGroup = { title: name, items: [], addons: [] };
@@ -345,7 +313,9 @@
                 grid.appendChild(card);
             });
             
-            if(grid.innerHTML === "") { grid.innerHTML = "<div class='col-span-full text-center text-slate-500 py-10 font-medium'>Ничего не найдено</div>"; }
+            if(grid.innerHTML === "") {
+                grid.innerHTML = "<div class='col-span-full text-center text-slate-500 py-10 font-medium'>Ничего не найдено</div>";
+            }
         }
 
         // ============================================
@@ -354,7 +324,9 @@
         function openModalFromCatalog(idx) {
             let saved = catalogMemory[idx];
             if (saved) {
-                currentSelection = JSON.parse(JSON.stringify(saved)); currentSelection.mode = 'new'; currentSelection.cartIdx = -1;
+                currentSelection = JSON.parse(JSON.stringify(saved));
+                currentSelection.mode = 'new';
+                currentSelection.cartIdx = -1;
             } else {
                 currentSelection = { groupIdx: idx, baseIdx: 0, baseQty: 1, addons: {}, mode: 'new', cartIdx: -1 };
             }
@@ -383,9 +355,11 @@
             document.getElementById('esModalTitle').innerText = (currentSelection.mode === 'edit' ? "Редактирование" : esc(group.title));
             const btn = document.getElementById('esModalBtn');
             if(currentSelection.mode === 'edit') {
-                btn.innerText = "Сохранить"; btn.className = "bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold transition-colors";
+                btn.innerText = "Сохранить";
+                btn.className = "bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold transition-colors";
             } else {
-                btn.innerText = "Добавить"; btn.className = "bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-bold transition-colors";
+                btn.innerText = "Добавить";
+                btn.className = "bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-bold transition-colors";
             }
 
             const bList = document.getElementById('esBasesList');
@@ -396,8 +370,13 @@
                 let pText = item.isPercent ? `${item.price}%` : (item.price===0?"По запросу":fmt(item.price));
                 let isActive = (i === currentSelection.baseIdx);
                 
-                let activeClasses = isActive ? "border-blue-600 bg-blue-50 ring-1 ring-blue-600 shadow-sm" : "border-slate-200 bg-white hover:border-blue-300";
-                let radioStyle = isActive ? "border-[5px] border-blue-600 bg-white" : "border-2 border-slate-300 bg-white";
+                let activeClasses = isActive 
+                    ? "border-blue-600 bg-blue-50 ring-1 ring-blue-600 shadow-sm" 
+                    : "border-slate-200 bg-white hover:border-blue-300";
+                    
+                let radioStyle = isActive 
+                    ? "border-[5px] border-blue-600 bg-white" 
+                    : "border-2 border-slate-300 bg-white";
 
                 bList.innerHTML += `
                     <div class="flex justify-between items-center p-3 rounded-xl border ${activeClasses} cursor-pointer transition-all" onclick="selectBase(${i})">
@@ -450,10 +429,16 @@
 
         function closeModal() { 
             const modal = document.getElementById('esModal');
-            modal.classList.add('hidden'); modal.classList.remove('flex'); document.body.classList.remove('modal-open'); 
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.classList.remove('modal-open'); 
         }
 
-        window.selectBase = function(i) { currentSelection.baseIdx = i; renderModalContent(); }
+        window.selectBase = function(i) {
+            currentSelection.baseIdx = i;
+            renderModalContent(); 
+        }
+
         window.changeBaseQty = function(delta) {
             let newQty = currentSelection.baseQty + delta;
             if(newQty < 1) newQty = 1;
@@ -461,21 +446,25 @@
             document.getElementById('esBaseQtyVal').innerText = newQty;
             updateCalc();
         }
+
         window.changeAddonQty = function(idx, delta) {
             let currentQty = currentSelection.addons[idx] || 0;
             let newQty = currentQty + delta;
             if(newQty < 0) newQty = 0;
             
-            if(newQty === 0) delete currentSelection.addons[idx]; else currentSelection.addons[idx] = newQty;
+            if(newQty === 0) delete currentSelection.addons[idx];
+            else currentSelection.addons[idx] = newQty;
             
             let span = document.getElementById(`esAddonQty_${idx}`);
             span.innerText = newQty;
             if(newQty > 0) {
-                span.classList.remove('text-slate-400'); span.classList.add('text-slate-900');
+                span.classList.remove('text-slate-400'); 
+                span.classList.add('text-slate-900');
                 span.parentElement.parentElement.classList.add('border-blue-400', 'bg-blue-50/70', 'shadow-sm');
                 span.parentElement.parentElement.classList.remove('border-slate-200', 'bg-white');
             } else {
-                span.classList.add('text-slate-400'); span.classList.remove('text-slate-900');
+                span.classList.add('text-slate-400'); 
+                span.classList.remove('text-slate-900');
                 span.parentElement.parentElement.classList.remove('border-blue-400', 'bg-blue-50/70', 'shadow-sm');
                 span.parentElement.parentElement.classList.add('border-slate-200', 'bg-white');
             }
@@ -485,13 +474,16 @@
         function updateCalc() {
             let group = database[currentSelection.groupIdx];
             let base = group.items.length ? group.items[currentSelection.baseIdx] : {price:0};
-            let total = 0; let percentStr = "";
+            let total = 0;
+            let percentStr = "";
 
-            if(base.isPercent) percentStr = ` + ${base.price}%`; else total += base.price * currentSelection.baseQty;
+            if(base.isPercent) percentStr = ` + ${base.price}%`;
+            else total += base.price * currentSelection.baseQty;
             
             for (const [idx, qty] of Object.entries(currentSelection.addons)) {
                 let add = group.addons[idx];
-                if(add.isPercent) percentStr += ` + ${add.price}%`; else total += add.price * qty;
+                if(add.isPercent) percentStr += ` + ${add.price}%`;
+                else total += add.price * qty;
             }
             document.getElementById('esModalPrice').innerText = fmt(total) + percentStr;
         }
@@ -508,55 +500,82 @@
             }
             
             catalogMemory[currentSelection.groupIdx] = {
-                groupIdx: currentSelection.groupIdx, baseIdx: currentSelection.baseIdx, baseQty: currentSelection.baseQty, addons: {...currentSelection.addons}
+                groupIdx: currentSelection.groupIdx, baseIdx: currentSelection.baseIdx,
+                baseQty: currentSelection.baseQty, addons: {...currentSelection.addons}
             };
 
-            let newItem = { title: group.title, base: baseItem, baseQty: currentSelection.baseQty, addons: selectedAddons };
+            let newItem = {
+                title: group.title, base: baseItem, baseQty: currentSelection.baseQty, addons: selectedAddons
+            };
 
-            if(currentSelection.mode === 'edit') cart[currentSelection.cartIdx] = newItem; else cart.push(newItem);
+            if(currentSelection.mode === 'edit') cart[currentSelection.cartIdx] = newItem;
+            else cart.push(newItem);
             
-            closeModal(); renderCart();
+            closeModal();
+            renderCart();
             
             if(window.innerWidth <= 768 && cart.length === 1) {
                 const widget = document.getElementById('esCartWidget');
                 const arrow = document.getElementById('mobile-cart-arrow');
-                widget.classList.add('is-open'); arrow.style.transform = 'rotate(180deg)';
-                setTimeout(() => { widget.classList.remove('is-open'); arrow.style.transform = 'rotate(0deg)'; }, 2500);
+                
+                widget.classList.add('is-open');
+                arrow.style.transform = 'rotate(180deg)';
+                
+                setTimeout(() => {
+                    widget.classList.remove('is-open');
+                    arrow.style.transform = 'rotate(0deg)';
+                }, 2500);
             }
         }
 
         function renderCart() {
             let fixedSum = 0, fixedInc = 0;
             cart.forEach(c => {
-                if(!c.base.isPercent) { fixedSum += c.base.price * c.baseQty; fixedInc += c.base.income * c.baseQty; }
+                if(!c.base.isPercent) {
+                    fixedSum += c.base.price * c.baseQty;
+                    fixedInc += c.base.income * c.baseQty;
+                }
                 c.addons.forEach(a => {
-                    if(!a.isPercent) { fixedSum += a.price * a.qty; fixedInc += a.income * a.qty; }
+                    if(!a.isPercent) {
+                        fixedSum += a.price * a.qty;
+                        fixedInc += a.income * a.qty;
+                    }
                 });
             });
 
             let total = fixedSum, totalInc = fixedInc;
-            const list = document.getElementById('esCartItems'); list.innerHTML = "";
+            const list = document.getElementById('esCartItems');
+            list.innerHTML = "";
 
             cart.forEach((c, idx) => {
-                let itemTotalCost = 0; let basePriceText = "";
+                let itemTotalCost = 0; 
+                let basePriceText = "";
 
                 if(c.base.isPercent) {
-                    let oneItemVal = fixedSum * (c.base.price / 100); let allItemsVal = oneItemVal * c.baseQty;
-                    total += allItemsVal; totalInc += (fixedSum * (c.base.income / 100)) * c.baseQty;
-                    itemTotalCost = allItemsVal; basePriceText = `${c.base.price}% (${fmt(oneItemVal)} x ${c.baseQty})`;
+                    let oneItemVal = fixedSum * (c.base.price / 100);
+                    let allItemsVal = oneItemVal * c.baseQty;
+                    total += allItemsVal;
+                    totalInc += (fixedSum * (c.base.income / 100)) * c.baseQty;
+                    itemTotalCost = allItemsVal;
+                    basePriceText = `${c.base.price}% (${fmt(oneItemVal)} x ${c.baseQty})`;
                 } else {
-                    itemTotalCost = c.base.price * c.baseQty; basePriceText = `${fmt(c.base.price)} x ${c.baseQty}`;
+                    itemTotalCost = c.base.price * c.baseQty;
+                    basePriceText = `${fmt(c.base.price)} x ${c.baseQty}`;
                 }
 
                 let addonsHtml = "";
                 c.addons.forEach(a => {
                     let aText = "", aCost = 0;
                     if(a.isPercent) {
-                        let oneVal = fixedSum * (a.price / 100); let allVal = oneVal * a.qty;
-                        total += allVal; totalInc += (fixedSum * (a.income / 100)) * a.qty;
-                        aCost = allVal; aText = `${a.price}% (${fmt(oneVal)}) x ${a.qty}`;
+                        let oneVal = fixedSum * (a.price / 100);
+                        let allVal = oneVal * a.qty;
+                        total += allVal;
+                        totalInc += (fixedSum * (a.income / 100)) * a.qty;
+                        aCost = allVal;
+                        aText = `${a.price}% (${fmt(oneVal)}) x ${a.qty}`;
                     } else {
-                        aCost = a.price * a.qty; aText = `${fmt(a.price)} x ${a.qty}`;
+                        aCost = a.price * a.qty;
+                        aText = `${fmt(a.price)} x ${a.qty}`;
                     }
                     itemTotalCost += aCost;
                     addonsHtml += `<div class="text-xs text-slate-500 mb-0.5"><span class="text-slate-400">+</span> ${esc(a.name)}: ${aText}</div>`;
@@ -587,19 +606,28 @@
             document.getElementById('esTotalIncome').innerText = fmt(totalInc);
             
             const badge = document.getElementById('cart-count-badge');
-            if(cart.length > 0) { badge.innerText = cart.length; badge.classList.remove('hidden'); } else { badge.classList.add('hidden'); }
+            if(cart.length > 0) {
+                badge.innerText = cart.length;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
         }
 
         window.removeFromCart = function(e, i) { 
-            e.stopPropagation(); let item = cart[i];
+            e.stopPropagation(); 
+            let item = cart[i];
             let groupIdx = database.findIndex(g => g.title === item.title);
             if (groupIdx !== -1) delete catalogMemory[groupIdx];
-            cart.splice(i, 1); renderCart(); 
+            cart.splice(i, 1); 
+            renderCart(); 
         }
 
         window.clearCart = function(e) { 
             if(e) e.stopPropagation(); 
-            cart = []; catalogMemory = {}; renderCart(); 
+            cart = []; 
+            catalogMemory = {}; 
+            renderCart(); 
             if(window.innerWidth <= 768) {
                 document.getElementById('esCartWidget').classList.remove('is-open');
                 document.getElementById('mobile-cart-arrow').style.transform = 'rotate(0deg)';
@@ -608,38 +636,42 @@
 
         window.toggleMobileCart = function() {
             if(window.innerWidth <= 768) {
-                const widget = document.getElementById('esCartWidget'); const arrow = document.getElementById('mobile-cart-arrow');
-                widget.classList.toggle('is-open'); arrow.style.transform = widget.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
+                const widget = document.getElementById('esCartWidget');
+                const arrow = document.getElementById('mobile-cart-arrow');
+                widget.classList.toggle('is-open');
+                arrow.style.transform = widget.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
             }
         }
 
         document.getElementById('esSearch').addEventListener('input', (e) => renderCatalog(e.target.value));
 
         // ============================================
-        // ЛОГИКА СКРЫТИЯ ШАПКИ (Умный скролл)
+        // ЛОГИКА СКРЫТИЯ/ПОКАЗА НАВИГАЦИИ ПРИ СКРОЛЛЕ
         // ============================================
         let lastScrollTop = 0;
         const portalNav = document.getElementById('portal-nav');
 
         if (portalNav) {
-            window.addEventListener('scroll', function() {
-                let currentScroll = window.pageYOffset || document.documentElement.scrollTop;
-                let maxScroll = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-                
-                // 1. Защита от "резинки" iOS и бага с дёрганьем в самом низу списка
-                if (currentScroll <= 0 || currentScroll >= maxScroll - 5) return;
-                
-                // 2. Игнорируем мелкие сдвиги пальцем
-                if (Math.abs(currentScroll - lastScrollTop) <= 5) return;
+            document.querySelectorAll('.scroll-area').forEach(el => {
+                el.addEventListener('scroll', function() {
+                    let currentScroll = this.scrollTop;
+                    let maxScroll = this.scrollHeight - this.clientHeight;
+                    
+                    if (currentScroll <= 0 || currentScroll >= maxScroll - 5) {
+                        return;
+                    }
 
-                // 3. Прячем или показываем
-                if (currentScroll > lastScrollTop && currentScroll > 50) {
-                    portalNav.style.marginTop = `-${portalNav.offsetHeight}px`; 
-                } else {
-                    portalNav.style.marginTop = '0px'; 
-                }
-                lastScrollTop = currentScroll;
-            }, { passive: true });
+                    if (Math.abs(currentScroll - lastScrollTop) <= 5) return;
+
+                    if (currentScroll > lastScrollTop && currentScroll > 50) {
+                        portalNav.style.marginTop = `-${portalNav.offsetHeight}px`; 
+                    } else {
+                        portalNav.style.marginTop = '0px'; 
+                    }
+                    
+                    lastScrollTop = currentScroll;
+                }, { passive: true });
+            });
         }
     </script>
 </body>
