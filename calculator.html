@@ -66,8 +66,8 @@
     <!-- ОБЛАСТЬ ПРОКРУТКИ С УМНЫМ СКРОЛЛОМ НАВИГАЦИИ -->
     <div class="scroll-area flex flex-col w-full relative">
 
-        <!-- ОСНОВНОЙ КОНТЕЙНЕР -->
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row gap-6 items-start w-full">
+        <!-- ОСНОВНОЙ КОНТЕЙНЕР (Добавлен отступ mt-6 sm:mt-8) -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8 flex flex-col md:flex-row gap-6 items-start w-full">
             
             <!-- СПИСОК ПОЗИЦИЙ -->
             <div class="flex-1 w-full">
@@ -167,8 +167,6 @@
             deliveryItems.forEach((item, idx) => {
                 let card = document.createElement('div');
                 card.className = 'bg-white p-4 sm:p-5 rounded-[1.5rem] border border-slate-200 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] flex flex-col justify-between transition-all hover:border-blue-400 hover:shadow-[0_8px_25px_-5px_rgba(0,0,0,0.06)]';
-                
-                let activeStyle = item.qty > 0 ? "border-blue-500 bg-blue-500 text-white" : "border-slate-300 bg-white text-slate-600";
                 
                 card.innerHTML = `
                     <div class="mb-4">
