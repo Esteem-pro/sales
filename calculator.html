@@ -84,11 +84,17 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8 flex flex-col md:flex-row gap-6 items-start w-full">
             
             <div class="flex-1 w-full">
-                <!-- Липкий заголовок (Работает как поиск в каталоге) -->
-                <div id="search-container" class="sticky z-40 w-full pointer-events-none mb-6 sm:mb-8">
+                <!-- Липкий заголовок -->
+                <div id="search-container" class="sticky z-40 w-full pointer-events-none mb-4">
                     <div class="relative shadow-[0_8px_30px_rgb(0,0,0,0.06)] rounded-[1.2rem] bg-white/80 backdrop-blur-xl border border-white/60 px-5 py-4 flex items-center justify-between pointer-events-auto w-full">
                         <h1 class="font-extrabold text-slate-800 text-lg">Калькулятор доставки</h1>
                     </div>
+                </div>
+
+                <!-- ИНФОРМАЦИОННАЯ ПЛАШКА СДЭК -->
+                <div class="mb-6 bg-indigo-50/80 border border-indigo-100 text-indigo-800 text-sm p-4 rounded-[1.2rem] shadow-sm flex items-start gap-3">
+                    <svg class="w-6 h-6 shrink-0 text-indigo-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <p class="leading-relaxed font-medium">Сумма доставки из Москвы до получателя (курьерская по Москве / авиа курьер в другой город) рассчитывается в СДЭК и оплачивается в компанию СДЭК получателем при получении посылки.</p>
                 </div>
 
                 <div id="calcGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
@@ -121,7 +127,11 @@
                                     <span id="calcBaseSum" class="text-slate-800">0 ₽</span>
                                 </div>
                                 <div class="flex justify-between text-sm font-semibold text-slate-500">
-                                    <span>Доставка (15%):</span>
+                                    <span>Сбор за заказ:</span>
+                                    <span id="calcConstantSum" class="text-slate-800">+ 0 ₽</span>
+                                </div>
+                                <div class="flex justify-between text-sm font-semibold text-slate-500">
+                                    <span>Комиссия (15%):</span>
                                     <span id="calcPercentSum" class="text-blue-600">+ 0 ₽</span>
                                 </div>
                             </div>
@@ -148,17 +158,34 @@
             window.location.href = 'index.html';
         }
 
+        // КОНСТАНТЫ ДЛЯ РАСЧЕТА
+        const PRICE_PER_KG = 200;
+        const ORDER_CONSTANT = 500;
         const DELIVERY_PERCENT = 0.15; 
         
+        // НОВАЯ СТРУКТУРА ДАННЫХ
         let deliveryItems = [
-            { name: "2д комплект 2 ряда", price: 1000, qty: 0 },
-            { name: "2д комплект 3 ряда", price: 1000, qty: 0 },
-            { name: "3д комплект", price: 1000, qty: 0 },
-            { name: "Коврики для минивэна", price: 1000, qty: 0 },
-            { name: "Коврик багажник", price: 1000, qty: 0 },
-            { name: "Органайзер", price: 1000, qty: 0 },
-            { name: "Сумка", price: 1000, qty: 0 }
+            { name: "2д комплект 2 ряда", weight: 6, customs: 2500, qty: 0 },
+            { name: "2д комплект 3 ряда", weight: 7, customs: 2500, qty: 0 },
+            { name: "3д комплект", weight: 10, customs: 2500, qty: 0 },
+            { name: "3д комплект с багажником", weight: 12, customs: 2500, qty: 0 },
+            { name: "Коврики для минивэна", weight: 15, customs: 2500, qty: 0 },
+            { name: "Коврик багажник", weight: 2, customs: 2500, qty: 0 },
+            { name: "Сумка", weight: 3, customs: 2000, qty: 0 },
+            { name: "Органайзер", weight: 8, customs: 1500, qty: 0 },
+            { name: "Чемодан", weight: 5, customs: 1500, qty: 0 },
+            { name: "Ложка длинная без тубуса", weight: 1.5, customs: 1300, qty: 0 },
+            { name: "Ложка длинная с тубусом", weight: 2.5, customs: 300, qty: 0 },
+            { name: "Картина 50х70", weight: 5, customs: 3000, qty: 0 },
+            { name: "Бустер детский", weight: 5, customs: 1200, qty: 0 },
+            { name: "Каска", weight: 1.5, customs: 1500, qty: 0 },
+            { name: "Номерная рамка", weight: 1, customs: 1500, qty: 0 }
         ];
+
+        // Вычисляем базовую стоимость 1 штуки (Вес * 200 + растаможка)
+        deliveryItems.forEach(item => {
+            item.price = (item.weight * PRICE_PER_KG) + item.customs;
+        });
 
         const fmt = (n) => new Intl.NumberFormat('ru-RU').format(Math.round(n)) + ' ₽';
         
@@ -173,7 +200,8 @@
                 card.innerHTML = `
                     <div class="mb-4">
                         <div class="font-bold text-slate-800 text-sm sm:text-base leading-snug mb-1">${item.name}</div>
-                        <div class="text-slate-400 text-xs font-semibold">${fmt(item.price)} / шт.</div>
+                        <div class="text-slate-400 text-xs mb-1">${item.weight} кг × ${PRICE_PER_KG}₽ + ${item.customs}₽ там.</div>
+                        <div class="text-slate-600 text-sm font-bold">${fmt(item.price)} / шт.</div>
                     </div>
                     <div class="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
                         <span class="font-extrabold text-blue-600 text-base">${fmt(item.price * (item.qty > 0 ? item.qty : 1))}</span>
@@ -239,10 +267,14 @@
 
             if(itemsCount === 0) list.innerHTML = "<div class='text-center py-8 text-slate-400 font-medium text-sm'>Добавьте позиции</div>";
 
-            let percentSum = baseTotal * DELIVERY_PERCENT;
-            let finalSum = baseTotal + percentSum;
+            // Логика расчета по новой формуле
+            let constantSum = itemsCount > 0 ? ORDER_CONSTANT : 0;
+            let subTotal = baseTotal + constantSum;
+            let percentSum = subTotal * DELIVERY_PERCENT;
+            let finalSum = subTotal + percentSum;
 
             document.getElementById('calcBaseSum').innerText = fmt(baseTotal);
+            document.getElementById('calcConstantSum').innerText = '+ ' + fmt(constantSum);
             document.getElementById('calcPercentSum').innerText = '+ ' + fmt(percentSum);
             document.getElementById('calcTotalSum').innerText = fmt(finalSum);
 
