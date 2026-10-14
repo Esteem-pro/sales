@@ -680,30 +680,30 @@ function updatePlanDisplay() {
             document.getElementById('dept-avg-check-rep').innerHTML = `(Было: ${formatMoney(prev.avgCheckRep || 0)}) ${getShortDiffHtml(avgRep, prev.avgCheckRep)}`;
             setTimeout(() => { document.getElementById('bar-check-rep').style.width = `${(avgRep / maxAvg) * 100}%`; }, 100);
 
-            // === РАСЧЁТ ПЛАНОВ (СУММАРНО / НОВЫЕ / ПОВТОРНЫЕ) ===
+// === РАСЧЁТ ПЛАНОВ (СУММАРНО / НОВЫЕ / ПОВТОРНЫЕ) ===
 const date = new Date();
 const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 const daysPassed = Math.max(1, date.getDate());
 
-const totalRev = p.totalRevenue || 0;
 const revNew = p.revNew || 0;
 const revRep = p.revRep || 0;
+const sumTotal = (revNew + revRep);  // Переименовано, чтобы не конфликтовать с totalRev выше
 
 const planSum = p.plan || 1;
 const planNew = p.planNew || 0;
 const planRep = p.planRep || 0;
 
-const forecastSum = (totalRev / daysPassed) * daysInMonth;
+const forecastSum = (sumTotal / daysPassed) * daysInMonth;
 const forecastNew = planNew > 0 ? (revNew / daysPassed) * daysInMonth : 0;
 const forecastRep = planRep > 0 ? (revRep / daysPassed) * daysInMonth : 0;
 
-const percentSum = (totalRev / planSum) * 100;
+const percentSum = (sumTotal / planSum) * 100;
 const percentNew = planNew > 0 ? (revNew / planNew) * 100 : 0;
 const percentRep = planRep > 0 ? (revRep / planRep) * 100 : 0;
 
 planDataCache = {
     sum: {
-        percent: percentSum, plan: planSum, fact: totalRev,
+        percent: percentSum, plan: planSum, fact: sumTotal,
         forecast: forecastSum, forecastPercent: (forecastSum / planSum) * 100,
         prevBadge: buildComparisonText(percentSum, prev.planPercent || 0, true)
     },
