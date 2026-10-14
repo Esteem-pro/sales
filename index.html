@@ -119,21 +119,47 @@
                     <div class="text-4xl sm:text-5xl font-extrabold mt-auto" id="total-revenue">0 ₽</div>
                 </div>
 
-                <div class="bento-card">
-                    <span class="metric-title">План продаж</span>
-                    <div class="metric-value mt-auto" id="sales-plan">0 ₽</div>
-                    <span class="text-xs text-slate-400 mt-2 block">Синхронизировано</span>
-                </div>
+               <div class="bento-card md:col-span-2 lg:col-span-2">
+    <div class="flex justify-between items-center mb-4">
+        <span class="metric-title mb-0">Выполнение плана</span>
+    </div>
 
-                <div class="bento-card">
-                    <span class="metric-title">Выполнение плана</span>
-                    <div class="metric-value text-blue-600" id="plan-percent">0%</div>
-                    <div class="mt-auto pt-4 w-full">
-                        <div id="plan-vs-dept" class="badge"></div>
-                    </div>
-                </div>
+    <div class="bg-slate-100 p-1 rounded-xl flex text-sm font-semibold mb-5">
+        <button id="plan-tab-sum" onclick="switchPlanTab('sum')" class="flex-1 px-3 py-2 bg-white text-slate-900 shadow-sm rounded-lg transition-all">Суммарно</button>
+        <button id="plan-tab-new" onclick="switchPlanTab('new')" class="flex-1 px-3 py-2 text-slate-500 hover:text-slate-900 rounded-lg transition-all">Новые</button>
+        <button id="plan-tab-rep" onclick="switchPlanTab('rep')" class="flex-1 px-3 py-2 text-slate-500 hover:text-slate-900 rounded-lg transition-all">Повторные</button>
+    </div>
 
-                <div class="bento-card">
+    <div class="text-center mb-5">
+        <div id="plan-active-percent" class="text-5xl sm:text-6xl font-extrabold tracking-tight text-slate-900">0%</div>
+        <div id="plan-active-amounts" class="text-sm text-slate-500 mt-1">0 ₽ из 0 ₽</div>
+    </div>
+
+    <div class="space-y-2 mb-5 bg-slate-50 rounded-xl p-4">
+        <div class="flex justify-between items-center">
+            <span class="text-sm text-slate-500 font-medium">План</span>
+            <span id="plan-active-plan" class="text-sm font-bold text-slate-900">0 ₽</span>
+        </div>
+        <div class="flex justify-between items-center">
+            <span class="text-sm text-slate-500 font-medium">Факт</span>
+            <div class="text-right flex items-center gap-3">
+                <span id="plan-active-fact" class="text-sm font-bold text-slate-900">0 ₽</span>
+                <div class="w-24 bg-slate-200 rounded-full h-1.5 overflow-hidden"><div id="plan-active-bar" class="h-full rounded-full bg-blue-500 transition-all duration-500" style="width: 0%"></div></div>
+            </div>
+        </div>
+        <div class="flex justify-between items-center">
+            <span class="text-sm text-slate-500 font-medium">Прогноз</span>
+            <div class="text-right">
+                <span id="plan-active-forecast" class="text-sm font-bold text-emerald-600">0 ₽</span>
+                <div class="text-[10px] text-slate-400 mt-0.5" id="plan-active-forecast-percent">0% от плана</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="plan-vs-prev" class="badge"></div>
+</div>
+
+                <div class="bento-card md:col-span-2 lg:col-span-2">
                     <span class="metric-title flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500 block"></span>Фактические поступления</span>
                     <div class="metric-value mt-auto" id="cash-inflow">0 ₽</div>
                 </div>
@@ -147,12 +173,6 @@
                         <span class="metric-title">Новая дебиторка</span>
                         <div class="text-2xl font-extrabold text-yellow-500" id="deb-new">0 ₽</div>
                     </div>
-                </div>
-
-                <div class="bento-card">
-                    <span class="metric-title">Прогноз на месяц</span>
-                    <div class="metric-value" id="forecast-percent">0%</div>
-                    <div class="text-sm text-slate-500 font-medium mt-auto" id="forecast-rub">0 ₽</div>
                 </div>
 
                 <div class="bento-card md:col-span-2 lg:col-span-2">
@@ -579,7 +599,43 @@
                 btnText.classList.remove('hidden'); btnLoader.classList.add('hidden');
             }
         }
+let currentPlanTab = 'sum';
+let planDataCache = {};
 
+function switchPlanTab(tab) {
+    currentPlanTab = tab;
+    const activeClass = "flex-1 px-3 py-2 bg-white text-slate-900 shadow-sm rounded-lg transition-all";
+    const inactiveClass = "flex-1 px-3 py-2 text-slate-500 hover:text-slate-900 rounded-lg transition-all";
+
+    document.getElementById('plan-tab-sum').className = tab === 'sum' ? activeClass : inactiveClass;
+    document.getElementById('plan-tab-new').className = tab === 'new' ? activeClass : inactiveClass;
+    document.getElementById('plan-tab-rep').className = tab === 'rep' ? activeClass : inactiveClass;
+
+    updatePlanDisplay();
+}
+
+function updatePlanDisplay() {
+    if (!planDataCache[currentPlanTab]) return;
+    const d = planDataCache[currentPlanTab];
+
+    const percentEl = document.getElementById('plan-active-percent');
+    percentEl.innerText = d.percent.toFixed(0) + '%';
+    percentEl.className = `text-5xl sm:text-6xl font-extrabold tracking-tight ${d.percent >= 100 ? 'text-emerald-500' : 'text-slate-900'}`;
+    
+    document.getElementById('plan-active-amounts').innerText = `${formatMoney(d.fact)} из ${formatMoney(d.plan)}`;
+    document.getElementById('plan-active-plan').innerText = formatMoney(d.plan);
+    document.getElementById('plan-active-fact').innerText = formatMoney(d.fact);
+    document.getElementById('plan-active-bar').style.width = `${Math.min(100, d.percent)}%`;
+
+    const fEl = document.getElementById('plan-active-forecast');
+    fEl.innerText = formatMoney(d.forecast);
+    fEl.className = `text-sm font-bold ${d.forecastPercent >= 100 ? 'text-emerald-600' : 'text-rose-500'}`;
+    document.getElementById('plan-active-forecast-percent').innerText = `${d.forecastPercent.toFixed(0)}% от плана`;
+
+    const badge = document.getElementById('plan-vs-prev');
+    badge.innerText = d.prevBadge.text;
+    badge.className = d.prevBadge.class;
+}
         function renderDashboard(data) {
             const p = data.personal || {}; 
             const prev = data.prev || {};
@@ -594,7 +650,6 @@
             }
             
             document.getElementById('total-revenue').innerText = formatMoney(p.totalRevenue);
-            document.getElementById('sales-plan').innerText = formatMoney(p.plan);
             document.getElementById('cash-inflow').innerText = formatMoney(p.cash);
             document.getElementById('deb-received').innerText = formatMoney(p.debRec);
             document.getElementById('deb-new').innerText = formatMoney(p.debNew);
@@ -625,36 +680,47 @@
             document.getElementById('dept-avg-check-rep').innerHTML = `(Было: ${formatMoney(prev.avgCheckRep || 0)}) ${getShortDiffHtml(avgRep, prev.avgCheckRep)}`;
             setTimeout(() => { document.getElementById('bar-check-rep').style.width = `${(avgRep / maxAvg) * 100}%`; }, 100);
 
-            calculatePlan(prev);
-            
+            // === РАСЧЁТ ПЛАНОВ (СУММАРНО / НОВЫЕ / ПОВТОРНЫЕ) ===
+const date = new Date();
+const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+const daysPassed = Math.max(1, date.getDate());
+
+const totalRev = p.totalRevenue || 0;
+const revNew = p.revNew || 0;
+const revRep = p.revRep || 0;
+
+const planSum = p.plan || 1;
+const planNew = p.planNew || 0;
+const planRep = p.planRep || 0;
+
+const forecastSum = (totalRev / daysPassed) * daysInMonth;
+const forecastNew = planNew > 0 ? (revNew / daysPassed) * daysInMonth : 0;
+const forecastRep = planRep > 0 ? (revRep / daysPassed) * daysInMonth : 0;
+
+const percentSum = (totalRev / planSum) * 100;
+const percentNew = planNew > 0 ? (revNew / planNew) * 100 : 0;
+const percentRep = planRep > 0 ? (revRep / planRep) * 100 : 0;
+
+planDataCache = {
+    sum: {
+        percent: percentSum, plan: planSum, fact: totalRev,
+        forecast: forecastSum, forecastPercent: (forecastSum / planSum) * 100,
+        prevBadge: buildComparisonText(percentSum, prev.planPercent || 0, true)
+    },
+    new: {
+        percent: percentNew, plan: planNew, fact: revNew,
+        forecast: forecastNew, forecastPercent: planNew > 0 ? (forecastNew / planNew) * 100 : 0,
+        prevBadge: buildComparisonText(percentNew, prev.planPercentNew || 0, true)
+    },
+    rep: {
+        percent: percentRep, plan: planRep, fact: revRep,
+        forecast: forecastRep, forecastPercent: planRep > 0 ? (forecastRep / planRep) * 100 : 0,
+        prevBadge: buildComparisonText(percentRep, prev.planPercentRep || 0, true)
+    }
+};
+
+updatePlanDisplay();
             initPersonalCharts(p);
-        }
-
-        function calculatePlan(prev) {
-            if (!globalData) return;
-            const plan = globalData.personal.plan || 1; 
-            const totalRev = globalData.personal.totalRevenue || 0;
-            
-            const percent = (totalRev / plan) * 100;
-            document.getElementById('plan-percent').innerText = percent.toFixed(0) + '%';
-            
-            const prevPercent = prev.planPercent || 0; 
-            const planData = buildComparisonText(percent, prevPercent, true);
-            const planBadge = document.getElementById('plan-vs-dept');
-            planBadge.innerText = planData.text; planBadge.className = planData.class;
-
-            const date = new Date();
-            const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-            const forecastedRev = (totalRev / Math.max(1, date.getDate())) * daysInMonth;
-            const forecastPercent = (forecastedRev / plan) * 100;
-            
-            const fPercentEl = document.getElementById('forecast-percent');
-            fPercentEl.innerText = forecastPercent.toFixed(0) + '%'; 
-            fPercentEl.className = `metric-value ${forecastPercent >= 100 ? 'text-emerald-500' : 'text-rose-500'}`;
-            
-            const fRubEl = document.getElementById('forecast-rub');
-            fRubEl.innerText = 'Ожидаемая выручка: ' + formatMoney(forecastedRev);
-            fRubEl.className = `text-sm font-medium mt-auto ${forecastPercent >= 100 ? 'text-emerald-600' : 'text-rose-500'}`;
         }
 
         let leadsChartInst = null; let revChartInst = null;
@@ -812,13 +878,41 @@
                 });
             });
 
-            lazyLoadChart('globalPlanChart', () => {
-                if (window.gPlanChart) window.gPlanChart.destroy();
-                window.gPlanChart = new Chart(document.getElementById('globalPlanChart'), {
-                    type: 'bar', data: { labels: months, datasets: [{ label: '% выполнения', data: g.planPercent, backgroundColor: (ctx) => ctx.raw >= 100 ? '#10b981' : '#f43f5e', borderRadius: 4 }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { usePointStyle: true, boxWidth: 8, padding: 25 } }, datalabels: { color: '#fff', align: 'center', font: {weight: 'bold'}, formatter: (v) => v > 0 ? v + '%' : '' } }, scales: { x: { grid: { display: false } }, y: { display: false, grace: '20%' } } }
-                });
-            });
+           lazyLoadChart('globalPlanChart', () => {
+    if (window.gPlanChart) window.gPlanChart.destroy();
+    window.gPlanChart = new Chart(document.getElementById('globalPlanChart'), {
+        type: 'bar',
+        data: {
+            labels: months,
+            datasets: [
+                {
+                    label: 'Суммарно', data: g.planPercent,
+                    backgroundColor: (ctx) => ctx.raw >= 100 ? '#10b981' : '#64748b',
+                    borderRadius: 4, barPercentage: 0.7
+                },
+                {
+                    label: 'Новые', data: g.planPercentNew,
+                    backgroundColor: '#3b82f6', borderRadius: 4, barPercentage: 0.7
+                },
+                {
+                    label: 'Повторные', data: g.planPercentRep,
+                    backgroundColor: '#818cf8', borderRadius: 4, barPercentage: 0.7
+                }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 15 } },
+                datalabels: { color: '#fff', align: 'center', font: { weight: 'bold', size: 10 }, formatter: (v) => v > 0 ? v + '%' : '' }
+            },
+            scales: {
+                x: { grid: { display: false } },
+                y: { display: false, grace: '20%' }
+            }
+        }
+    });
+});
 
             lazyLoadChart('globalConvChart', () => {
                 if (window.gConvChart) window.gConvChart.destroy();
