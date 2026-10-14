@@ -990,49 +990,57 @@ if (heroTotal > 0) {
                     const roundedUnpaid = (income.history.unpaid || []).map(v => Math.round(v || 0));
                     const roundedProjected = (income.history.projected || []).map(v => Math.round(v || 0));
 
-                    incomeChartInstance = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: income.history.labels,
-                            datasets: [
-                                {
-                                    label: 'Выплачено', data: roundedPaid, backgroundColor: '#10b981', stack: 'Stack 0', borderRadius: 4, datalabels: { display: false } 
-                                },
-                                {
-                                    label: 'Ожидается', data: roundedUnpaid, backgroundColor: '#f43f5e', stack: 'Stack 0', borderRadius: 4, datalabels: { display: false } 
-                                },
-                                {
-                                    label: 'Прогноз', data: roundedProjected, backgroundColor: '#a855f7', stack: 'Stack 0', borderRadius: 4,
-                                    datalabels: { 
-                                        display: true, align: 'top', anchor: 'end', color: '#475569', font: { weight: 'bold', size: 11 }, 
-                                        formatter: (val, context) => {
-                                            const ds = context.chart.data.datasets;
-                                            const total = (ds[0].data[context.dataIndex] || 0) + (ds[1].data[context.dataIndex] || 0) + (ds[2].data[context.dataIndex] || 0);
-                                            return total > 0 ? formatMoney(total) : '';
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                        options: { 
-                            responsive: true, maintainAspectRatio: false, 
-                            plugins: { 
-                                legend: { display: true, position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } },
-                                tooltip: {
-                                    mode: 'index', intersect: false,
-                                    callbacks: {
-                                        label: function(context) {
-                                            let label = context.dataset.label || '';
-                                            if (label) label += ': ';
-                                            if (context.parsed.y !== null) { label += formatMoney(context.parsed.y); }
-                                            return label;
-                                        }
-                                    }
-                                }
-                            }, 
-                            scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, border: {display: false}, grid: { borderDash: [4, 4] }, grace: '20%' } } 
-                        }
-                    });
+                  incomeChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: income.history.labels,
+        datasets: [
+            {
+                label: 'Выплачено', data: roundedPaid, backgroundColor: '#10b981', stack: 'Stack 0', borderRadius: 4, datalabels: { display: false } 
+            },
+            {
+                label: 'Ожидается', data: roundedUnpaid, backgroundColor: '#f43f5e', stack: 'Stack 0', borderRadius: 4, datalabels: { display: false } 
+            },
+            {
+                label: 'Прогноз (в разработке)', 
+                data: roundedProjected.map((v, idx) => {
+                    // Для последнего (текущего) месяца прогноз обнуляем
+                    const isLastMonth = idx === roundedProjected.length - 1;
+                    return isLastMonth ? 0 : v;
+                }), 
+                backgroundColor: '#a855f7', stack: 'Stack 0', borderRadius: 4,
+                datalabels: { 
+                    display: true, align: 'top', anchor: 'end', color: '#475569', font: { weight: 'bold', size: 11 }, 
+                    formatter: (val, context) => {
+                        const isLastMonth = context.dataIndex === roundedProjected.length - 1;
+                        if (isLastMonth) return '⚙ В разработке';
+                        const ds = context.chart.data.datasets;
+                        const total = (ds[0].data[context.dataIndex] || 0) + (ds[1].data[context.dataIndex] || 0) + (ds[2].data[context.dataIndex] || 0);
+                        return total > 0 ? formatMoney(total) : '';
+                    }
+                }
+            }
+        ]
+    },
+    options: { 
+        responsive: true, maintainAspectRatio: false, 
+        plugins: { 
+            legend: { display: true, position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } },
+            tooltip: {
+                mode: 'index', intersect: false,
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) label += ': ';
+                        if (context.parsed.y !== null) { label += formatMoney(context.parsed.y); }
+                        return label;
+                    }
+                }
+            }
+        }, 
+        scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, border: {display: false}, grid: { borderDash: [4, 4] }, grace: '20%' } } 
+    }
+});
                 }
             });
         }
@@ -1062,29 +1070,32 @@ if (heroTotal > 0) {
                         ? `<span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded-md text-xs font-bold border border-emerald-200">Да</span>` 
                         : `<span class="bg-amber-50 text-amber-700 px-2 py-1 rounded-md text-xs font-bold border border-amber-200">Нет</span>`;
 
-                    let statusBadge = '';
-                    if (statusStr === 'paid') {
-                        statusBadge = `<span class="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-md">Выплачен</span>`;
-                    } else if (statusStr === 'projected') {
-                        statusBadge = `<span class="text-xs font-bold text-purple-600 bg-purple-50 border border-purple-200 px-2 py-1 rounded-md">Прогноз</span>`;
-                        totalUnpaidSum += (order.totalIncome || 0); 
-                    } else {
-                        statusBadge = `<span class="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-1 rounded-md">Ожидается к выплате</span>`;
-                        totalUnpaidSum += (order.totalIncome || 0); 
-                    }
+let statusBadge = '';
+const isProjected = (statusStr === 'projected');
+if (statusStr === 'paid') {
+    statusBadge = `<span class="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-md">Выплачен</span>`;
+} else if (isProjected) {
+    statusBadge = `<span class="text-xs font-bold text-purple-600 bg-purple-50 border border-purple-200 px-2 py-1 rounded-md">Прогноз</span>`;
+    // Не добавляем в сумму ожидаемых выплат — прогноз отключён
+} else {
+    statusBadge = `<span class="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-1 rounded-md">Ожидается к выплате</span>`;
+    totalUnpaidSum += (order.totalIncome || 0); 
+}
 
-                    tr.innerHTML = `
-                        <td class="px-5 py-4">${order.date}</td>
-                        <td class="px-5 py-4 font-semibold text-slate-900">${order.orderId}</td>
-                        <td class="px-5 py-4">${formatMoney(order.revPlan)}</td>
-                        <td class="px-5 py-4 ${order.debt > 0 ? 'text-rose-500 font-medium' : ''}">${formatMoney(order.debt)}</td>
-                        <td class="px-5 py-4">${mfgBadge}</td>
-                        <td class="px-5 py-4">${formatMoney(order.baseIncome)}</td>
-                        <td class="px-5 py-4">${order.coeff}</td>
-                        <td class="px-5 py-4">${formatMoney(order.overprice)}</td>
-                        <td class="px-5 py-4 text-emerald-600 font-bold">${formatMoney(order.totalIncome)}</td>
-                        <td class="px-5 py-4">${statusBadge}</td>
-                    `;
+                   const placeholder = `<span class="text-slate-400 italic text-xs">⚙ В разработке</span>`;
+
+tr.innerHTML = `
+    <td class="px-5 py-4">${order.date}</td>
+    <td class="px-5 py-4 font-semibold text-slate-900">${order.orderId}</td>
+    <td class="px-5 py-4">${formatMoney(order.revPlan)}</td>
+    <td class="px-5 py-4 ${order.debt > 0 ? 'text-rose-500 font-medium' : ''}">${formatMoney(order.debt)}</td>
+    <td class="px-5 py-4">${mfgBadge}</td>
+    <td class="px-5 py-4">${isProjected ? placeholder : formatMoney(order.baseIncome)}</td>
+    <td class="px-5 py-4">${isProjected ? placeholder : order.coeff}</td>
+    <td class="px-5 py-4">${isProjected ? placeholder : formatMoney(order.overprice)}</td>
+    <td class="px-5 py-4 ${isProjected ? '' : 'text-emerald-600 font-bold'}">${isProjected ? placeholder : formatMoney(order.totalIncome)}</td>
+    <td class="px-5 py-4">${statusBadge}</td>
+`;
                     fragment.appendChild(tr);
                 });
                 tbody.appendChild(fragment);
@@ -1093,7 +1104,17 @@ if (heroTotal > 0) {
             }
 
             const summaryEl = document.getElementById('unpaid-summary-sum');
-            if (summaryEl) summaryEl.innerText = formatMoney(totalUnpaidSum);
+const summaryContainer = document.getElementById('unpaid-summary-container');
+if (summaryEl && summaryContainer) {
+    const isProjectedFilter = document.getElementById('payment-status-filter').value === 'projected';
+    if (isProjectedFilter) {
+        summaryEl.innerText = 'В разработке';
+        summaryContainer.className = 'bg-slate-100 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold inline-block';
+    } else {
+        summaryEl.innerText = formatMoney(totalUnpaidSum);
+        summaryContainer.className = 'bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1.5 rounded-xl text-xs font-bold inline-block';
+    }
+}
         }
 
         function filterOrdersTable() {
