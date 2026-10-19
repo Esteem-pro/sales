@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Рабочие материалы | Единый портал</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f1f5f9; 
+            height: 100dvh;
+            width: 100vw;
+            max-width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+        }
+        .glass-header {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        .bento-card { 
+            background: #ffffff; 
+            padding: 1.5rem; 
+            border-radius: 1.5rem; 
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03); 
+            border: 1px solid #f1f5f9; 
+            display: flex; 
+            flex-direction: column;
+            transition: all 0.25s ease;
+        }
+        .bento-card:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.06);
+            border-color: #e2e8f0;
+        }
+        .scroll-area { 
+            flex: 1; 
+            overflow-y: auto; 
+            overflow-x: hidden; 
+            width: 100%;
+            padding-bottom: calc(env(safe-area-inset-bottom) + 120px); 
+        }
+        .scroll-area::-webkit-scrollbar { width: 6px; }
+        .scroll-area::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        /* Скрытие скроллбара для горизонтального меню на мобильных */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .loader { 
+            border: 3px solid #f3f4f6; 
+            border-top: 3px solid #0ea5e9; 
+            border-radius: 50%; 
+            width: 24px; 
+            height: 24px; 
+            animation: spin 1s linear infinite; 
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <!-- ЭКРАН АВТОРИЗАЦИИ -->
+    <div id="auth-screen" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-cyan-400"></div>
+            <h2 class="text-2xl font-extrabold mt-2 text-slate-900">Вход в систему</h2>
+            <p class="text-slate-500 text-sm mb-6">Единый портал продавца</p>
+            <input type="text" id="username" placeholder="Имя менеджера" class="w-full mb-3 p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+            <input type="password" id="password" placeholder="Пароль" class="w-full mb-6 p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+            <button onclick="login()" class="w-full bg-slate-900 text-white p-3.5 rounded-xl font-bold flex justify-center items-center h-14 transition hover:bg-slate-800">
+                <span id="login-text">Войти</span>
+                <div id="login-loader" class="loader hidden"></div>
+            </button>
+            <p id="auth-error" class="text-rose-500 text-sm mt-4 text-center hidden font-medium"></p>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО: ДОБАВИТЬ ТАБЛИЦУ -->
+    <div id="add-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
+        <div class="bg-white p-6 sm:p-8 rounded-[2rem] shadow-2xl max-w-md w-full relative overflow-hidden animate-fade-in">
+            <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-500 to-teal-400"></div>
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-xl font-extrabold text-slate-900">Новая таблица</h3>
+                <button onclick="closeAddModal()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Название документа *</label>
+                    <input type="text" id="link-title" placeholder="Например: График отгрузок и остатки" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Ссылка на Google Таблицу *</label>
+                    <input type="url" id="link-url" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Категория</label>
+                    <select id="link-category" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none">
+                        <option value="sales">Продажи и клиенты</option>
+                        <option value="logistics">Производство и логистика</option>
+                        <option value="finance">Финансы и расчёты</option>
+                        <option value="regs">Регламенты и базы</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Краткое описание (необязательно)</label>
+                    <textarea id="link-desc" rows="2" placeholder="Для чего нужна эта таблица и кто в ней работает..." class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm focus:ring-2 focus:ring-emerald-500 outline-none resize-none"></textarea>
+                </div>
+            </div>
+
+            <p id="modal-error" class="text-rose-500 text-xs mt-3 hidden font-semibold"></p>
+
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeAddModal()" class="flex-1 py-3.5 px-4 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition">Отмена</button>
+                <button onclick="saveLink()" class="flex-1 py-3.5 px-4 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition flex items-center justify-center gap-2">
+                    <span>Сохранить</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- УВЕДОМЛЕНИЕ О КОПИРОВАНИИ (TOAST) -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl text-sm font-semibold flex items-center gap-2.5 z-[95] translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span id="toast-text">Ссылка скопирована</span>
+    </div>
+
+    <!-- ОСНОВНОЙ ЭКРАН (ОТОБРАЖАЕТСЯ ТОЛЬКО ПОСЛЕ АВТОРИЗАЦИИ) -->
+    <div id="dashboard-screen" class="hidden h-full flex flex-col w-full relative overflow-x-hidden">
+        
+        <!-- ОБЩЕПОРТАЛЬНАЯ НАВИГАЦИЯ -->
+        <nav id="portal-nav" class="fixed top-0 left-0 w-full bg-slate-900 text-white px-3 sm:px-4 pb-3 pt-[calc(env(safe-area-inset-top,0px)+12px)] flex justify-between items-center gap-2 z-[60] transition-transform duration-300">
+            <div class="flex gap-1 sm:gap-2 font-semibold text-[13px] sm:text-sm overflow-x-auto no-scrollbar">
+                <a href="index.html" class="px-3 py-2 rounded-lg transition-colors hover:bg-white/10 text-slate-300 whitespace-nowrap">Аналитика</a>
+                <a href="catalog.html" class="px-3 py-2 rounded-lg transition-colors hover:bg-white/10 text-slate-300 whitespace-nowrap">Прайс</a>
+                <a href="calculator.html" class="px-3 py-2 rounded-lg transition-colors hover:bg-white/10 text-slate-300 whitespace-nowrap">Доставка</a>
+                <a href="materials.html" class="px-3 py-2 rounded-lg transition-colors bg-white/20 text-white whitespace-nowrap">Рабочие материалы</a>
+            </div>
+            <button onclick="logout()" class="p-2 bg-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white rounded-lg transition shrink-0" aria-label="Выйти">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+            </button>
+        </nav>
+
+        <!-- ВНУТРЕННЯЯ ШАПКА -->
+        <header id="main-header" class="glass-header fixed left-0 w-full z-50 px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-transform duration-300" style="top: var(--nav-height, 60px);">
+            <div>
+                <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 flex flex-wrap items-center gap-2">
+                    <span>Рабочие материалы</span>
+                    <span id="links-counter" class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-lg">0 таблиц</span>
+                </h1>
+                <p class="text-xs text-slate-500 font-medium mt-0.5">Единый реестр полезных Google Таблиц и баз данных</p>
+            </div>
+
+            <div class="flex items-center gap-2.5 w-full sm:w-auto">
+                <div class="relative flex-1 sm:w-64">
+                    <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="text" id="search-input" oninput="renderMaterials()" placeholder="Поиск по таблицам..." class="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm">
+                </div>
+                <button onclick="openAddModal()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shrink-0 shadow-sm transition">
+                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                    <span>Добавить</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- ОСНОВНАЯ ОБЛАСТЬ КОНТЕНТА -->
+        <main class="scroll-area w-full">
+            <div class="max-w-7xl mx-auto p-4 sm:p-6 overflow-x-hidden">
+                
+                <!-- ФИЛЬТР ПО КАТЕГОРИЯМ -->
+                <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 mb-5">
+                    <button onclick="setCategoryFilter('all')" id="cat-all" class="cat-btn px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap bg-slate-900 text-white shadow-sm">Все таблицы</button>
+                    <button onclick="setCategoryFilter('sales')" id="cat-sales" class="cat-btn px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80">Продажи и клиенты</button>
+                    <button onclick="setCategoryFilter('logistics')" id="cat-logistics" class="cat-btn px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80">Производство и логистика</button>
+                    <button onclick="setCategoryFilter('finance')" id="cat-finance" class="cat-btn px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80">Финансы и расчёты</button>
+                    <button onclick="setCategoryFilter('regs')" id="cat-regs" class="cat-btn px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80">Регламенты и базы</button>
+                </div>
+
+                <!-- СЕТКА КАРТОЧЕК ССЫЛОК -->
+                <div id="materials-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                </div>
+
+                <!-- ПУСТОЕ СОСТОЯНИЕ -->
+                <div id="empty-state" class="hidden bento-card items-center justify-center text-center py-14 max-w-lg mx-auto mt-6">
+                    <div class="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 mb-4">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <h3 class="text-lg font-extrabold text-slate-900">Таблицы не найдены</h3>
+                    <p class="text-sm text-slate-500 mt-1 max-w-xs">В этой категории пока нет сохраненных ссылок на Google Таблицы или ничего не подошло под поиск.</p>
+                    <button onclick="openAddModal()" class="mt-5 px-5 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition">
+                        + Добавить первую таблицу
+                    </button>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzK-6RUJcQYZykSwtZWq5CawXYcrL5MGWGddzvq3HOKsFXY3Vxl5C39htR0qVhRBCzC/exec';
+        const STORAGE_KEY = 'sales_portal_materials_v1';
+        
+        let currentCategory = 'all';
+        let materialsList = [];
+
+        // Стартовые демо-таблицы (если список еще пуст)
+        const DEFAULT_MATERIALS = [
+            {
+                id: 'm1',
+                title: 'Основная таблица учёта заказов',
+                url: 'https://docs.google.com/spreadsheets/',
+                category: 'sales',
+                desc: 'Реестр всех текущих сделок, статусы оплаты и контроль дебиторской задолженности.',
+                createdAt: 'Базовый документ'
+            },
+            {
+                id: 'm2',
+                title: 'График производства и отгрузок',
+                url: 'https://docs.google.com/spreadsheets/',
+                category: 'logistics',
+                desc: 'Актуальные сроки изготовления заказов, статусы готовности на производстве и трек-номера.',
+                createdAt: 'Базовый документ'
+            },
+            {
+                id: 'm3',
+                title: 'Матрица скидок и прайс-лист',
+                url: 'https://docs.google.com/spreadsheets/',
+                category: 'finance',
+                desc: 'Сводная таблица базовых цен, допустимых коэффициентов и расчёта оверпрайса.',
+                createdAt: 'Базовый документ'
+            }
+        ];
+
+        const CATEGORY_META = {
+            sales: { label: 'Продажи и клиенты', badgeClass: 'bg-blue-50 text-blue-700 border-blue-200' },
+            logistics: { label: 'Производство и логистика', badgeClass: 'bg-amber-50 text-amber-700 border-amber-200' },
+            finance: { label: 'Финансы и расчёты', badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+            regs: { label: 'Регламенты и базы', badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200' }
+        };
+
+        // ==========================================
+        // ИНИЦИАЛИЗАЦИЯ И ПРОВЕРКА АВТОРИЗАЦИИ
+        // ==========================================
+        window.onload = () => {
+            loadMaterialsFromStorage();
+
+            const sName = localStorage.getItem('sales_dash_user');
+            const sPass = localStorage.getItem('sales_dash_pass');
+
+            if (sName && sPass) {
+                document.getElementById('username').value = sName;
+                document.getElementById('password').value = sPass;
+                unlockPortal();
+                // Фоновая проверка валидности пароля
+                verifyAuthSilently(sName, sPass);
+            }
+        };
+
+        function unlockPortal() {
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('dashboard-screen').classList.remove('hidden');
+            setTimeout(() => { if (window.initScrollLayout) window.initScrollLayout(); }, 50);
+            renderMaterials();
+        }
+
+        async function verifyAuthSilently(name, pass) {
+            try {
+                const date = new Date();
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ name: name, pass: pass, month: date.getMonth() + 1, year: date.getFullYear() })
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    localStorage.setItem('sales_dash_data', JSON.stringify(result.data));
+                } else {
+                    logout();
+                }
+            } catch (e) {
+                console.warn('Фоновая проверка соединения пропущена:', e);
+            }
+        }
+
+        async function login() {
+            const name = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value.trim();
+            const errorEl = document.getElementById('auth-error');
+            const btnText = document.getElementById('login-text');
+            const btnLoader = document.getElementById('login-loader');
+
+            if (!name || !pass) {
+                errorEl.innerText = 'Введите имя и пароль';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            errorEl.classList.add('hidden');
+            btnText.classList.add('hidden');
+            btnLoader.classList.remove('hidden');
+
+            try {
+                const date = new Date();
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ name: name, pass: pass, month: date.getMonth() + 1, year: date.getFullYear() })
+                });
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    localStorage.setItem('sales_dash_user', name);
+                    localStorage.setItem('sales_dash_pass', pass);
+                    localStorage.setItem('sales_dash_data', JSON.stringify(result.data));
+                    unlockPortal();
+                } else {
+                    throw new Error(result.message || 'Неверное имя или пароль');
+                }
+            } catch (error) {
+                errorEl.innerText = error.message;
+                errorEl.classList.remove('hidden');
+            } finally {
+                btnText.classList.remove('hidden');
+                btnLoader.classList.add('hidden');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('sales_dash_user');
+            localStorage.removeItem('sales_dash_pass');
+            localStorage.removeItem('sales_dash_data');
+            document.getElementById('dashboard-screen').classList.add('hidden');
+            document.getElementById('auth-screen').classList.remove('hidden');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        // ==========================================
+        // РАБОТА С ХРАНИЛИЩЕМ ССЫЛОК
+        // ==========================================
+        function loadMaterialsFromStorage() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                try {
+                    materialsList = JSON.parse(raw);
+                } catch (e) {
+                    materialsList = [...DEFAULT_MATERIALS];
+                }
+            } else {
+                materialsList = [...DEFAULT_MATERIALS];
+                saveMaterialsToStorage();
+            }
+        }
+
+        function saveMaterialsToStorage() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(materialsList));
+        }
+
+        function setCategoryFilter(cat) {
+            currentCategory = cat;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.className = 'cat-btn px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80';
+            });
+            const activeBtn = document.getElementById('cat-' + cat);
+            if (activeBtn) {
+                activeBtn.className = 'cat-btn px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap bg-slate-900 text-white shadow-sm';
+            }
+            renderMaterials();
+        }
+
+        function renderMaterials() {
+            const grid = document.getElementById('materials-grid');
+            const emptyState = document.getElementById('empty-state');
+            const counter = document.getElementById('links-counter');
+            const query = (document.getElementById('search-input')?.value || '').trim().toLowerCase();
+
+            grid.innerHTML = '';
+
+            const filtered = materialsList.filter(item => {
+                const matchesCat = currentCategory === 'all' || item.category === currentCategory;
+                const matchesQuery = !query || 
+                    item.title.toLowerCase().includes(query) || 
+                    (item.desc && item.desc.toLowerCase().includes(query));
+                return matchesCat && matchesQuery;
+            });
+
+            // Склонение счетчика
+            const count = materialsList.length;
+            const mod10 = count % 10;
+            const mod100 = count % 100;
+            let word = 'таблиц';
+            if (mod10 === 1 && mod100 !== 11) word = 'таблица';
+            else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) word = 'таблицы';
+            counter.innerText = `${count} ${word}`;
+
+            if (filtered.length === 0) {
+                grid.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            grid.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+
+            const fragment = document.createDocumentFragment();
+
+            filtered.forEach(item => {
+                const catInfo = CATEGORY_META[item.category] || CATEGORY_META.sales;
+                const card = document.createElement('div');
+                card.className = 'bento-card justify-between group';
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-start justify-between gap-3 mb-3">
+                            <div class="flex items-center gap-3">
+                                <!-- Иконка Google Sheets -->
+                                <div class="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-200/70 flex items-center justify-center shrink-0 text-emerald-600 shadow-sm">
+                                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <span class="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${catInfo.badgeClass}">
+                                        ${catInfo.label}
+                                    </span>
+                                    <div class="text-[11px] text-slate-400 font-medium mt-0.5">${escapeHtml(item.createdAt || 'Добавлено недавно')}</div>
+                                </div>
+                            </div>
+
+                            <!-- Кнопка удаления -->
+                            <button onclick="deleteMaterial('${item.id}')" title="Удалить таблицу" class="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+
+                        <h3 class="text-base font-extrabold text-slate-900 leading-snug mb-1.5 group-hover:text-blue-600 transition-colors">
+                            ${escapeHtml(item.title)}
+                        </h3>
+                        <p class="text-xs text-slate-500 leading-relaxed line-clamp-2 mb-5">
+                            ${escapeHtml(item.desc || 'Прямая ссылка на рабочую Google Таблицу.')}
+                        </p>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-100 flex items-center gap-2 mt-auto">
+                        <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" class="flex-1 bg-slate-900 hover:bg-blue-600 text-white text-xs font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition">
+                            <span>Открыть таблицу</span>
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                        </a>
+                        <button onclick="copyLink('${escapeHtml(item.url)}')" title="Скопировать ссылку" class="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        </button>
+                    </div>
+                `;
+                fragment.appendChild(card);
+            });
+
+            grid.appendChild(fragment);
+        }
+
+        // ==========================================
+        // ДОБАВЛЕНИЕ, УДАЛЕНИЕ И УТИЛИТЫ
+        // ==========================================
+        function openAddModal() {
+            document.getElementById('link-title').value = '';
+            document.getElementById('link-url').value = '';
+            document.getElementById('link-desc').value = '';
+            document.getElementById('modal-error').classList.add('hidden');
+            document.getElementById('add-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('link-title').focus(), 50);
+        }
+
+        function closeAddModal() {
+            document.getElementById('add-modal').classList.add('hidden');
+        }
+
+        function saveLink() {
+            const title = document.getElementById('link-title').value.trim();
+            let url = document.getElementById('link-url').value.trim();
+            const category = document.getElementById('link-category').value;
+            const desc = document.getElementById('link-desc').value.trim();
+            const errEl = document.getElementById('modal-error');
+
+            if (!title || !url) {
+                errEl.innerText = 'Заполните название и ссылку на таблицу';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            if (!/^https?:\/\//i.test(url)) {
+                url = 'https://' + url;
+            }
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+            const newItem = {
+                id: 'mat_' + Date.now(),
+                title,
+                url,
+                category,
+                desc,
+                createdAt: 'Добавлено ' + dateStr
+            };
+
+            materialsList.unshift(newItem);
+            saveMaterialsToStorage();
+            closeAddModal();
+            renderMaterials();
+            showToast('Таблица добавлена в список');
+        }
+
+        function deleteMaterial(id) {
+            const item = materialsList.find(m => m.id === id);
+            if (!item) return;
+            if (!confirm(`Удалить «${item.title}» из рабочих материалов?`)) return;
+
+            materialsList = materialsList.filter(m => m.id !== id);
+            saveMaterialsToStorage();
+            renderMaterials();
+            showToast('Таблица удалена');
+        }
+
+        function copyLink(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                showToast('Ссылка скопирована в буфер');
+            });
+        }
+
+        let toastTimer = null;
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const text = document.getElementById('toast-text');
+            text.innerText = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2500);
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // ============================================
+        // ЛОГИКА СКРЫТИЯ/ПОКАЗА НАВИГАЦИИ ПРИ СКРОЛЛЕ
+        // ============================================
+        let lastScrollTop = 0;
+        const portalNav = document.getElementById('portal-nav');
+        const extraHeader = document.getElementById('main-header');
+
+        window.initScrollLayout = () => {
+            if (!portalNav) return;
+            const navH = portalNav.offsetHeight;
+            const headerH = extraHeader ? extraHeader.offsetHeight : 0;
+            
+            document.documentElement.style.setProperty('--nav-height', navH + 'px');
+            
+            document.querySelectorAll('.scroll-area').forEach(area => {
+                let spacer = area.querySelector('.safe-spacer');
+                if (!spacer) {
+                    spacer = document.createElement('div');
+                    spacer.className = 'safe-spacer shrink-0 w-full';
+                    area.insertBefore(spacer, area.firstChild);
+                }
+                spacer.style.height = (navH + headerH) + 'px';
+            });
+        };
+
+        if (portalNav) {
+            setTimeout(window.initScrollLayout, 50);
+            window.addEventListener('resize', window.initScrollLayout);
+
+            document.querySelectorAll('.scroll-area').forEach(scrollArea => {
+                scrollArea.addEventListener('scroll', function() {
+                    let currentScroll = this.scrollTop;
+                    let maxScroll = this.scrollHeight - this.clientHeight;
+                    
+                    if (currentScroll <= 0 || currentScroll >= maxScroll - 5) return;
+                    if (Math.abs(currentScroll - lastScrollTop) <= 5) return;
+
+                    if (currentScroll > lastScrollTop && currentScroll > 50) {
+                        portalNav.style.transform = 'translateY(-100%)'; 
+                        if (extraHeader) extraHeader.style.transform = 'translateY(calc(-1 * var(--nav-height)))';
+                    } else {
+                        portalNav.style.transform = 'translateY(0)'; 
+                        if (extraHeader) extraHeader.style.transform = 'translateY(0)';
+                    }
+                    
+                    lastScrollTop = currentScroll;
+                }, { passive: true });
+            });
+        }
+    </script>
+</body>
+</html>
