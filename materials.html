@@ -80,13 +80,13 @@
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО: ДОБАВИТЬ ТАБЛИЦУ -->
-    <div id="add-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
+    <!-- МОДАЛЬНОЕ ОКНО: ДОБАВИТЬ / РЕДАКТИРОВАТЬ ТАБЛИЦУ -->
+    <div id="item-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
         <div class="bg-white p-6 sm:p-8 rounded-[2rem] shadow-2xl max-w-md w-full relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-500 to-teal-400"></div>
             <div class="flex justify-between items-center mb-5">
-                <h3 class="text-xl font-extrabold text-slate-900">Новая таблица</h3>
-                <button onclick="closeAddModal()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
+                <h3 id="item-modal-title" class="text-xl font-extrabold text-slate-900">Новая таблица</h3>
+                <button onclick="closeItemModal()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
@@ -103,12 +103,14 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Категория</label>
+                    <div class="flex justify-between items-center mb-1.5">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500">Категория</label>
+                        <button type="button" onclick="openCategoriesModal()" class="text-xs font-bold text-blue-600 hover:text-blue-700 transition">
+                            + Настроить категории
+                        </button>
+                    </div>
                     <select id="link-category" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none">
-                        <option value="sales">Продажи и клиенты</option>
-                        <option value="logistics">Производство и логистика</option>
-                        <option value="finance">Финансы и расчёты</option>
-                        <option value="regs">Регламенты и базы</option>
+                        <option value="">Без категории</option>
                     </select>
                 </div>
 
@@ -121,9 +123,60 @@
             <p id="modal-error" class="text-rose-500 text-xs mt-3 hidden font-semibold"></p>
 
             <div class="flex gap-3 mt-6">
-                <button onclick="closeAddModal()" class="flex-1 py-3.5 px-4 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition">Отмена</button>
+                <button onclick="closeItemModal()" class="flex-1 py-3.5 px-4 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition">Отмена</button>
                 <button id="save-btn" onclick="saveLink()" class="flex-1 py-3.5 px-4 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition flex items-center justify-center gap-2">
                     <span id="save-btn-text">Сохранить</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО: УПРАВЛЕНИЕ КАТЕГОРИЯМИ -->
+    <div id="categories-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[92] flex items-center justify-center p-4">
+        <div class="bg-white p-6 sm:p-8 rounded-[2rem] shadow-2xl max-w-md w-full relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+            <div class="flex justify-between items-center mb-5">
+                <div>
+                    <h3 class="text-xl font-extrabold text-slate-900">Категории таблиц</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Добавляйте свои разделы или удаляйте ненужные</p>
+                </div>
+                <button onclick="closeCategoriesModal()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <!-- Форма создания новой категории -->
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 mb-5">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Новая категория</label>
+                <div class="flex gap-2 mb-3">
+                    <input type="text" id="new-cat-name" placeholder="Название категории..." class="flex-1 p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    <button id="add-cat-btn" onclick="addCategory()" class="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm transition shrink-0">
+                        Добавить
+                    </button>
+                </div>
+                <!-- Палитра цветов бейджа -->
+                <div class="flex items-center gap-2">
+                    <span class="text-[11px] font-semibold text-slate-400 mr-1">Цвет:</span>
+                    <button type="button" onclick="selectCatColor('blue')" data-color="blue" class="cat-color-pick w-6 h-6 rounded-full bg-blue-500 ring-2 ring-offset-2 ring-slate-900 transition"></button>
+                    <button type="button" onclick="selectCatColor('emerald')" data-color="emerald" class="cat-color-pick w-6 h-6 rounded-full bg-emerald-500 opacity-60 hover:opacity-100 transition"></button>
+                    <button type="button" onclick="selectCatColor('amber')" data-color="amber" class="cat-color-pick w-6 h-6 rounded-full bg-amber-500 opacity-60 hover:opacity-100 transition"></button>
+                    <button type="button" onclick="selectCatColor('indigo')" data-color="indigo" class="cat-color-pick w-6 h-6 rounded-full bg-indigo-500 opacity-60 hover:opacity-100 transition"></button>
+                    <button type="button" onclick="selectCatColor('rose')" data-color="rose" class="cat-color-pick w-6 h-6 rounded-full bg-rose-500 opacity-60 hover:opacity-100 transition"></button>
+                    <button type="button" onclick="selectCatColor('slate')" data-color="slate" class="cat-color-pick w-6 h-6 rounded-full bg-slate-500 opacity-60 hover:opacity-100 transition"></button>
+                </div>
+                <p id="cat-modal-error" class="text-rose-500 text-xs mt-2 hidden font-semibold"></p>
+            </div>
+
+            <!-- Список текущих категорий -->
+            <div>
+                <span class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Текущие категории</span>
+                <div id="categories-manage-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <button onclick="closeCategoriesModal()" class="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-bold text-sm transition">
+                    Готово
                 </button>
             </div>
         </div>
@@ -157,20 +210,23 @@
                 <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 flex flex-wrap items-center gap-2">
                     <span>Рабочие материалы</span>
                     <span id="links-counter" class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-lg">0 таблиц</span>
-                    <!-- Индикатор облачной синхронизации (как в index.html) -->
                     <span id="sync-indicator" class="hidden text-[10px] font-bold text-slate-500 bg-slate-200/60 px-2 py-1 rounded-lg flex items-center gap-1.5 uppercase tracking-wider">
                         <div class="w-3 h-3 border-2 border-slate-400 border-t-blue-600 rounded-full animate-spin"></div>
                         Синхронизация
                     </span>
                 </h1>
-                <p class="text-xs text-slate-500 font-medium mt-0.5">Облачный реестр общих Google Таблиц (обновляется у всех в реальном времени)</p>
+                <p class="text-xs text-slate-500 font-medium mt-0.5">Облачный реестр общих Google Таблиц</p>
             </div>
 
-            <div class="flex items-center gap-2.5 w-full sm:w-auto">
+            <div class="flex items-center gap-2 w-full sm:w-auto">
                 <div class="relative flex-1 sm:w-64">
                     <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     <input type="text" id="search-input" oninput="renderMaterials()" placeholder="Поиск по таблицам..." class="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm">
                 </div>
+                <button onclick="openCategoriesModal()" title="Управление категориями" class="bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 px-3.5 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 shrink-0 shadow-sm transition">
+                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+                    <span class="hidden sm:inline">Категории</span>
+                </button>
                 <button onclick="openAddModal()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shrink-0 shadow-sm transition">
                     <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
                     <span>Добавить</span>
@@ -182,13 +238,8 @@
         <main class="scroll-area w-full">
             <div class="max-w-7xl mx-auto p-4 sm:p-6 overflow-x-hidden">
                 
-                <!-- ФИЛЬТР ПО КАТЕГОРИЯМ -->
-                <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 mb-5">
-                    <button onclick="setCategoryFilter('all')" id="cat-all" class="cat-btn px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap bg-slate-900 text-white shadow-sm">Все таблицы</button>
-                    <button onclick="setCategoryFilter('sales')" id="cat-sales" class="cat-btn px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80">Продажи и клиенты</button>
-                    <button onclick="setCategoryFilter('logistics')" id="cat-logistics" class="cat-btn px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80">Производство и логистика</button>
-                    <button onclick="setCategoryFilter('finance')" id="cat-finance" class="cat-btn px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80">Финансы и расчёты</button>
-                    <button onclick="setCategoryFilter('regs')" id="cat-regs" class="cat-btn px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80">Регламенты и базы</button>
+                <!-- ДИНАМИЧЕСКИЙ ФИЛЬТР ПО КАТЕГОРИЯМ -->
+                <div id="category-tabs-bar" class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 mb-5">
                 </div>
 
                 <!-- СЕТКА КАРТОЧЕК ССЫЛОК -->
@@ -201,7 +252,7 @@
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     </div>
                     <h3 class="text-lg font-extrabold text-slate-900">Таблицы не найдены</h3>
-                    <p class="text-sm text-slate-500 mt-1 max-w-xs">В этой категории пока нет сохраненных ссылок на Google Таблицы или ничего не подошло под поиск.</p>
+                    <p class="text-sm text-slate-500 mt-1 max-w-xs">В этом разделе пока нет сохраненных ссылок на Google Таблицы или ничего не подошло под фильтр.</p>
                     <button onclick="openAddModal()" class="mt-5 px-5 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition">
                         + Добавить таблицу
                     </button>
@@ -211,7 +262,7 @@
         </main>
     </div>
 
-    <!-- FIREBASE SDK (Compat-версия для удобной работы в одном файле) -->
+    <!-- FIREBASE SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
@@ -231,74 +282,53 @@
   messagingSenderId: "371423925545",
   appId: "1:371423925545:web:b480f995453bc84d631338"
 };
+        };
 
-        // Инициализация Firebase
         let db = null;
-        let materialsRef = null;
+        let portalRef = null;
         try {
             if (!firebase.apps.length) {
                 firebase.initializeApp(firebaseConfig);
             }
             db = firebase.database();
-            materialsRef = db.ref('portal_materials');
+            portalRef = db.ref('portal_materials');
         } catch (err) {
             console.error('Ошибка инициализации Firebase:', err);
         }
 
-        const CACHE_KEY = 'sales_portal_materials_cache_v1';
+        const CACHE_ITEMS_KEY = 'sales_portal_materials_items_v2';
+        const CACHE_CATS_KEY = 'sales_portal_materials_cats_v2';
+
         let currentCategory = 'all';
         let materialsList = [];
+        let categoriesList = []; // Массив объектов { id, label, color, timestamp }
+        let editingItemId = null; // null = режим создания, строка = ID редактируемой карточки
+        let selectedNewCatColor = 'blue';
         let realtimeSubscribed = false;
 
-        // Базовые документы при первом запуске пустой БД
-        const DEFAULT_MATERIALS = {
-            "mat_init_1": {
-                id: "mat_init_1",
-                title: "Основная таблица учёта заказов",
-                url: "https://docs.google.com/spreadsheets/",
-                category: "sales",
-                desc: "Реестр всех текущих сделок, статусы оплаты и контроль дебиторской задолженности.",
-                createdAt: "Базовый документ",
-                author: "Система",
-                timestamp: 1700000000003
-            },
-            "mat_init_2": {
-                id: "mat_init_2",
-                title: "График производства и отгрузок",
-                url: "https://docs.google.com/spreadsheets/",
-                category: "logistics",
-                desc: "Актуальные сроки изготовления заказов, статусы готовности на производстве и трек-номера.",
-                createdAt: "Базовый документ",
-                author: "Система",
-                timestamp: 1700000000002
-            },
-            "mat_init_3": {
-                id: "mat_init_3",
-                title: "Матрица скидок и прайс-лист",
-                url: "https://docs.google.com/spreadsheets/",
-                category: "finance",
-                desc: "Сводная таблица базовых цен, допустимых коэффициентов и расчёта оверпрайса.",
-                createdAt: "Базовый документ",
-                author: "Система",
-                timestamp: 1700000000001
-            }
-        };
-
-        const CATEGORY_META = {
-            sales: { label: 'Продажи и клиенты', badgeClass: 'bg-blue-50 text-blue-700 border-blue-200' },
-            logistics: { label: 'Производство и логистика', badgeClass: 'bg-amber-50 text-amber-700 border-amber-200' },
-            finance: { label: 'Финансы и расчёты', badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-            regs: { label: 'Регламенты и базы', badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200' }
+        // Цветовые темы для пользовательских категорий
+        const COLOR_STYLES = {
+            blue:    { badge: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-500' },
+            emerald: { badge: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
+            amber:   { badge: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500' },
+            indigo:  { badge: 'bg-indigo-50 text-indigo-700 border-indigo-200', dot: 'bg-indigo-500' },
+            rose:    { badge: 'bg-rose-50 text-rose-700 border-rose-200', dot: 'bg-rose-500' },
+            slate:   { badge: 'bg-slate-100 text-slate-700 border-slate-200', dot: 'bg-slate-500' }
         };
 
         // ==========================================
         // 2. АВТОРИЗАЦИЯ И СТАРТ СТРАНИЦЫ
         // ==========================================
         window.onload = () => {
-            // Загружаем локальный кэш для мгновенной отрисовки (0 мс)
-            const cached = localStorage.getItem(CACHE_KEY);
-            if (cached) {
-                try { materialsList = JSON.parse(cached); } catch (e) { materialsList = []; }
+            // Мгновенное чтение кэша из localStorage
+            try {
+                const cachedItems = localStorage.getItem(CACHE_ITEMS_KEY);
+                const cachedCats = localStorage.getItem(CACHE_CATS_KEY);
+                if (cachedItems) materialsList = JSON.parse(cachedItems);
+                if (cachedCats) categoriesList = JSON.parse(cachedCats);
+            } catch (e) {
+                materialsList = [];
+                categoriesList = [];
             }
 
             const sName = localStorage.getItem('sales_dash_user');
@@ -317,9 +347,9 @@
             document.getElementById('dashboard-screen').classList.remove('hidden');
             setTimeout(() => { if (window.initScrollLayout) window.initScrollLayout(); }, 50);
             
-            // Сначала рисуем то, что есть в кэше
+            renderCategoryTabs();
+            renderCategorySelect();
             renderMaterials();
-            // Затем подключаемся к Realtime Database для живой синхронизации
             subscribeToRealtimeDB();
         }
 
@@ -389,8 +419,8 @@
             localStorage.removeItem('sales_dash_user');
             localStorage.removeItem('sales_dash_pass');
             localStorage.removeItem('sales_dash_data');
-            if (materialsRef && realtimeSubscribed) {
-                materialsRef.off();
+            if (portalRef && realtimeSubscribed) {
+                portalRef.off();
                 realtimeSubscribed = false;
             }
             document.getElementById('dashboard-screen').classList.add('hidden');
@@ -410,27 +440,34 @@
         }
 
         function subscribeToRealtimeDB() {
-            if (!materialsRef || realtimeSubscribed) return;
+            if (!portalRef || realtimeSubscribed) return;
             realtimeSubscribed = true;
             setSyncIndicator(true);
 
-            materialsRef.on('value', (snapshot) => {
-                const val = snapshot.val();
+            portalRef.on('value', (snapshot) => {
+                const val = snapshot.val() || {};
 
-                // Если в базе еще вообще никогда не было ветки portal_materials — засеиваем стартовыми
-                if (val === null) {
-                    materialsRef.set({
-                        _initialized: true,
-                        items: DEFAULT_MATERIALS
-                    });
-                    return;
+                // Читаем категории
+                const rawCats = val.categories || {};
+                categoriesList = Object.values(rawCats).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+                // Если выбранная вкладка фильтра была удалена, сбрасываем на «Все таблицы»
+                if (currentCategory !== 'all' && !categoriesList.some(c => c.id === currentCategory)) {
+                    currentCategory = 'all';
                 }
 
+                // Читаем карточки таблиц
                 const rawItems = val.items || {};
-                const parsedList = Object.values(rawItems).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                materialsList = Object.values(rawItems).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
-                materialsList = parsedList;
-                localStorage.setItem(CACHE_KEY, JSON.stringify(materialsList));
+                // Обновляем локальный кэш
+                localStorage.setItem(CACHE_CATS_KEY, JSON.stringify(categoriesList));
+                localStorage.setItem(CACHE_ITEMS_KEY, JSON.stringify(materialsList));
+
+                // Перерисовываем интерфейс
+                renderCategoryTabs();
+                renderCategorySelect();
+                renderCategoriesManageList();
                 renderMaterials();
                 setSyncIndicator(false);
             }, (error) => {
@@ -441,18 +478,191 @@
         }
 
         // ==========================================
-        // 4. ОТРИСОВКА И ФИЛЬТРАЦИЯ КАРТОЧЕК
+        // 4. УПРАВЛЕНИЕ КАТЕГОРИЯМИ (СОЗДАНИЕ / УДАЛЕНИЕ)
         // ==========================================
-        function setCategoryFilter(cat) {
-            currentCategory = cat;
-            document.querySelectorAll('.cat-btn').forEach(btn => {
-                btn.className = 'cat-btn px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80';
+        function renderCategoryTabs() {
+            const bar = document.getElementById('category-tabs-bar');
+            if (!bar) return;
+            bar.innerHTML = '';
+
+            const activeClass = 'cat-btn px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap bg-slate-900 text-white shadow-sm';
+            const inactiveClass = 'cat-btn px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80';
+
+            // Кнопка «Все таблицы»
+            const allBtn = document.createElement('button');
+            allBtn.className = currentCategory === 'all' ? activeClass : inactiveClass;
+            allBtn.innerText = 'Все таблицы';
+            allBtn.onclick = () => setCategoryFilter('all');
+            bar.appendChild(allBtn);
+
+            // Пользовательские категории
+            categoriesList.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.className = currentCategory === cat.id ? activeClass : inactiveClass;
+                btn.innerText = cat.label;
+                btn.onclick = () => setCategoryFilter(cat.id);
+                bar.appendChild(btn);
             });
-            const activeBtn = document.getElementById('cat-' + cat);
-            if (activeBtn) {
-                activeBtn.className = 'cat-btn px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap bg-slate-900 text-white shadow-sm';
+        }
+
+        function renderCategorySelect(selectedValue) {
+            const select = document.getElementById('link-category');
+            if (!select) return;
+            const currentVal = selectedValue !== undefined ? selectedValue : select.value;
+
+            select.innerHTML = '<option value="">Без категории</option>';
+            categoriesList.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.id;
+                opt.innerText = cat.label;
+                select.appendChild(opt);
+            });
+
+            if (currentVal && categoriesList.some(c => c.id === currentVal)) {
+                select.value = currentVal;
+            } else {
+                select.value = '';
             }
+        }
+
+        function setCategoryFilter(catId) {
+            currentCategory = catId;
+            renderCategoryTabs();
             renderMaterials();
+        }
+
+        function openCategoriesModal() {
+            document.getElementById('new-cat-name').value = '';
+            document.getElementById('cat-modal-error').classList.add('hidden');
+            selectCatColor('blue');
+            renderCategoriesManageList();
+            document.getElementById('categories-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('new-cat-name').focus(), 50);
+        }
+
+        function closeCategoriesModal() {
+            document.getElementById('categories-modal').classList.add('hidden');
+        }
+
+        function selectCatColor(color) {
+            selectedNewCatColor = color;
+            document.querySelectorAll('.cat-color-pick').forEach(btn => {
+                if (btn.dataset.color === color) {
+                    btn.className = `cat-color-pick w-6 h-6 rounded-full bg-${color}-500 ring-2 ring-offset-2 ring-slate-900 transition`;
+                } else {
+                    btn.className = `cat-color-pick w-6 h-6 rounded-full bg-${btn.dataset.color}-500 opacity-60 hover:opacity-100 transition`;
+                }
+            });
+        }
+
+        function renderCategoriesManageList() {
+            const container = document.getElementById('categories-manage-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (categoriesList.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-xs text-slate-400 font-medium">
+                        Категорий пока нет. Создайте первую выше.
+                    </div>
+                `;
+                return;
+            }
+
+            categoriesList.forEach(cat => {
+                const style = COLOR_STYLES[cat.color] || COLOR_STYLES.slate;
+                const countInCat = materialsList.filter(m => m.category === cat.id).length;
+
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between p-3 bg-white border border-slate-200/80 rounded-xl hover:border-slate-300 transition';
+                row.innerHTML = `
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-2.5 h-2.5 rounded-full ${style.dot}"></span>
+                        <span class="text-sm font-bold text-slate-800">${escapeHtml(cat.label)}</span>
+                        <span class="text-[11px] font-semibold text-slate-400">(${countInCat})</span>
+                    </div>
+                    <button onclick="deleteCategory('${escapeHtml(cat.id)}')" title="Удалить категорию" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        async function addCategory() {
+            const nameInput = document.getElementById('new-cat-name');
+            const label = nameInput.value.trim();
+            const errEl = document.getElementById('cat-modal-error');
+            const btn = document.getElementById('add-cat-btn');
+
+            if (!label) {
+                errEl.innerText = 'Введите название категории';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            if (categoriesList.some(c => c.label.toLowerCase() === label.toLowerCase())) {
+                errEl.innerText = 'Такая категория уже существует';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            errEl.classList.add('hidden');
+            const id = 'cat_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5);
+            const newCat = {
+                id,
+                label,
+                color: selectedNewCatColor,
+                timestamp: Date.now()
+            };
+
+            try {
+                btn.disabled = true;
+                setSyncIndicator(true);
+                await db.ref('portal_materials/categories/' + id).set(newCat);
+                nameInput.value = '';
+                renderCategorySelect(id);
+                showToast('Категория добавлена');
+            } catch (error) {
+                console.error('Ошибка создания категории:', error);
+                errEl.innerText = 'Не удалось сохранить категорию';
+                errEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                setSyncIndicator(false);
+            }
+        }
+
+        async function deleteCategory(catId) {
+            const cat = categoriesList.find(c => c.id === catId);
+            if (!cat) return;
+            if (!confirm(`Удалить категорию «${cat.label}»? Карточки внутри неё не удалятся и перейдут в «Без категории».`)) return;
+
+            try {
+                setSyncIndicator(true);
+                await db.ref('portal_materials/categories/' + catId).remove();
+                showToast('Категория удалена');
+            } catch (error) {
+                console.error('Ошибка удаления категории:', error);
+                showToast('Ошибка при удалении категории');
+            } finally {
+                setSyncIndicator(false);
+            }
+        }
+
+        // ==========================================
+        // 5. ОТРИСОВКА КАРТОЧЕК ТАБЛИЦ
+        // ==========================================
+        function getCategoryMeta(catId) {
+            if (!catId) {
+                return { label: 'Без категории', badgeClass: COLOR_STYLES.slate.badge };
+            }
+            const found = categoriesList.find(c => c.id === catId);
+            if (!found) {
+                return { label: 'Без категории', badgeClass: COLOR_STYLES.slate.badge };
+            }
+            const style = COLOR_STYLES[found.color] || COLOR_STYLES.blue;
+            return { label: found.label, badgeClass: style.badge };
         }
 
         function renderMaterials() {
@@ -493,34 +703,41 @@
             const fragment = document.createDocumentFragment();
 
             filtered.forEach(item => {
-                const catInfo = CATEGORY_META[item.category] || CATEGORY_META.sales;
+                const catInfo = getCategoryMeta(item.category);
                 const card = document.createElement('div');
                 card.className = 'bento-card justify-between group';
 
+                const editedSuffix = item.editedAt ? ` (изм. ${escapeHtml(item.editedAt)})` : '';
                 const metaLine = item.author 
-                    ? `Добавил(а): ${escapeHtml(item.author)} • ${escapeHtml(item.createdAt || '')}`
-                    : escapeHtml(item.createdAt || 'Базовый документ');
+                    ? `Добавил(а): ${escapeHtml(item.author)} • ${escapeHtml(item.createdAt || '')}${editedSuffix}`
+                    : `${escapeHtml(item.createdAt || 'Документ')}${editedSuffix}`;
 
                 card.innerHTML = `
                     <div>
-                        <div class="flex items-start justify-between gap-3 mb-3">
-                            <div class="flex items-center gap-3">
+                        <div class="flex items-start justify-between gap-2 mb-3">
+                            <div class="flex items-center gap-3 min-w-0">
                                 <div class="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-200/70 flex items-center justify-center shrink-0 text-emerald-600 shadow-sm">
                                     <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                     </svg>
                                 </div>
-                                <div>
-                                    <span class="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${catInfo.badgeClass}">
-                                        ${catInfo.label}
+                                <div class="min-w-0">
+                                    <span class="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${catInfo.badgeClass} truncate max-w-full">
+                                        ${escapeHtml(catInfo.label)}
                                     </span>
-                                    <div class="text-[11px] text-slate-400 font-medium mt-0.5">${metaLine}</div>
+                                    <div class="text-[11px] text-slate-400 font-medium mt-0.5 truncate">${metaLine}</div>
                                 </div>
                             </div>
 
-                            <button onclick="deleteMaterial('${escapeHtml(item.id)}')" title="Удалить таблицу у всех" class="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            </button>
+                            <!-- Кнопки Редактирования и Удаления -->
+                            <div class="flex items-center gap-0.5 shrink-0">
+                                <button onclick="openEditModal('${escapeHtml(item.id)}')" title="Редактировать карточку" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                </button>
+                                <button onclick="deleteMaterial('${escapeHtml(item.id)}')" title="Удалить таблицу у всех" class="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </div>
                         </div>
 
                         <h3 class="text-base font-extrabold text-slate-900 leading-snug mb-1.5 group-hover:text-blue-600 transition-colors">
@@ -548,19 +765,40 @@
         }
 
         // ==========================================
-        // 5. ДОБАВЛЕНИЕ И УДАЛЕНИЕ В FIREBASE
+        // 6. СОЗДАНИЕ, РЕДАКТИРОВАНИЕ И УДАЛЕНИЕ КАРТОЧЕК
         // ==========================================
         function openAddModal() {
+            editingItemId = null;
+            document.getElementById('item-modal-title').innerText = 'Новая таблица';
+            document.getElementById('save-btn-text').innerText = 'Сохранить';
             document.getElementById('link-title').value = '';
             document.getElementById('link-url').value = '';
             document.getElementById('link-desc').value = '';
+            renderCategorySelect(currentCategory !== 'all' ? currentCategory : '');
             document.getElementById('modal-error').classList.add('hidden');
-            document.getElementById('add-modal').classList.remove('hidden');
+            document.getElementById('item-modal').classList.remove('hidden');
             setTimeout(() => document.getElementById('link-title').focus(), 50);
         }
 
-        function closeAddModal() {
-            document.getElementById('add-modal').classList.add('hidden');
+        function openEditModal(id) {
+            const item = materialsList.find(m => m.id === id);
+            if (!item) return;
+
+            editingItemId = id;
+            document.getElementById('item-modal-title').innerText = 'Редактировать таблицу';
+            document.getElementById('save-btn-text').innerText = 'Сохранить изменения';
+            document.getElementById('link-title').value = item.title || '';
+            document.getElementById('link-url').value = item.url || '';
+            document.getElementById('link-desc').value = item.desc || '';
+            renderCategorySelect(item.category || '');
+            document.getElementById('modal-error').classList.add('hidden');
+            document.getElementById('item-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('link-title').focus(), 50);
+        }
+
+        function closeItemModal() {
+            editingItemId = null;
+            document.getElementById('item-modal').classList.add('hidden');
         }
 
         async function saveLink() {
@@ -585,36 +823,52 @@
             const now = new Date();
             const dateStr = now.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
             const currentUser = localStorage.getItem('sales_dash_user') || 'Менеджер';
-            const id = 'mat_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
-
-            const newItem = {
-                id,
-                title,
-                url,
-                category,
-                desc,
-                author: currentUser,
-                createdAt: dateStr,
-                timestamp: Date.now()
-            };
 
             try {
                 saveBtn.disabled = true;
                 saveBtnText.innerText = 'Сохранение...';
                 setSyncIndicator(true);
 
-                await db.ref('portal_materials/items/' + id).set(newItem);
-                await db.ref('portal_materials/_initialized').set(true);
-
-                closeAddModal();
-                showToast('Таблица добавлена для всех');
+                if (editingItemId) {
+                    // РЕЖИМ РЕДАКТИРОВАНИЯ СУЩЕСТВУЮЩЕЙ КАРТОЧКИ
+                    const existing = materialsList.find(m => m.id === editingItemId) || {};
+                    const updatedItem = {
+                        ...existing,
+                        id: editingItemId,
+                        title,
+                        url,
+                        category,
+                        desc,
+                        editedAt: dateStr,
+                        editedBy: currentUser
+                    };
+                    await db.ref('portal_materials/items/' + editingItemId).set(updatedItem);
+                    closeItemModal();
+                    showToast('Изменения сохранены');
+                } else {
+                    // РЕЖИМ ДОБАВЛЕНИЯ НОВОЙ КАРТОЧКИ
+                    const id = 'mat_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+                    const newItem = {
+                        id,
+                        title,
+                        url,
+                        category,
+                        desc,
+                        author: currentUser,
+                        createdAt: dateStr,
+                        timestamp: Date.now()
+                    };
+                    await db.ref('portal_materials/items/' + id).set(newItem);
+                    closeItemModal();
+                    showToast('Таблица добавлена для всех');
+                }
             } catch (error) {
                 console.error('Ошибка сохранения в Firebase:', error);
                 errEl.innerText = 'Не удалось сохранить в облако. Проверьте подключение.';
                 errEl.classList.remove('hidden');
             } finally {
                 saveBtn.disabled = false;
-                saveBtnText.innerText = 'Сохранить';
+                saveBtnText.innerText = editingItemId ? 'Сохранить изменения' : 'Сохранить';
                 setSyncIndicator(false);
             }
         }
@@ -655,7 +909,7 @@
         }
 
         function escapeHtml(str) {
-            return String(str)
+            return String(str || '')
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;')
@@ -664,7 +918,7 @@
         }
 
         // ============================================
-        // 6. ЛОГИКА СКРЫТИЯ/ПОКАЗА ШАПКИ ПРИ СКРОЛЛЕ
+        // 7. ЛОГИКА СКРЫТИЯ/ПОКАЗА ШАПКИ ПРИ СКРОЛЛЕ
         // ============================================
         let lastScrollTop = 0;
         const portalNav = document.getElementById('portal-nav');
