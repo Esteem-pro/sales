@@ -656,7 +656,7 @@ function renderCart() {
 
             // 1. Синглтон форматирования чисел
             const _RU_FMT = new Intl.NumberFormat('ru-RU');
-            fmt = (n) => _RU_FMT.format(Math.round((+n || 0) * 100) / 100) + ' ₽';
+           const fmt = (n) => _RU_FMT.format(Math.round((+n || 0) * 100) / 100) + ' ₽';
 
             let _catalogCards = [];
             let _emptyStateEl = null;
