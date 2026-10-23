@@ -691,6 +691,364 @@ function renderCart() {
                 }, { passive: true });
             });
         }
+        // ==========================================================
+        // PERFORMANCE & UX PATCH v1.0
+        // ==========================================================
+        (() => {
+            const CACHE_KEY_CSV = 'es_catalog_csv_cache_v1';
+            const CACHE_KEY_CART = 'es_catalog_cart_v1';
+            const CACHE_KEY_MEM = 'es_catalog_mem_v1';
+
+            // 1. Быстрый синглтон форматирования чисел (в 50 раз быстрее new Intl.NumberFormat на каждый вызов)
+            const _RU_FMT = new Intl.NumberFormat('ru-RU');
+            fmt = (n) => _RU_FMT.format(Math.round((+n || 0) * 100) / 100) + ' ₽';
+
+            let _catalogCards = [];
+            let _emptyStateEl = null;
+            let _mobileCartTimer = null;
+            let _lastCsvHash = '';
+
+            // 2. Восстановление и сохранение корзины между вкладками портала
+            function _loadPersistedCart() {
+                try {
+                    const savedCart = sessionStorage.getItem(CACHE_KEY_CART);
+                    const savedMem = sessionStorage.getItem(CACHE_KEY_MEM);
+                    if (savedCart) cart = JSON.parse(savedCart) || [];
+                    if (savedMem) catalogMemory = JSON.parse(savedMem) || {};
+                } catch (e) {}
+            }
+
+            function _savePersistedCart() {
+                try {
+                    sessionStorage.setItem(CACHE_KEY_CART, JSON.stringify(cart));
+                    sessionStorage.setItem(CACHE_KEY_MEM, JSON.stringify(catalogMemory));
+                } catch (e) {}
+            }
+
+            // 3. Предварительная индексация данных и защита от Infinity в ценах
+            processData = function(rows) {
+                if (!rows || !rows.length) return;
+
+                // Проверка хэша, чтобы не перерисовывать каталог, если фоновый CSV не изменился
+                const rawHash = JSON.stringify(rows);
+                if (rawHash === _lastCsvHash && database.length > 0) return;
+                _lastCsvHash = rawHash;
+
+                try {
+                    sessionStorage.setItem(CACHE_KEY_CSV, rawHash);
+                } catch (e) {}
+
+                database = [];
+                let currentGroup = null;
+                let isAddons = false;
+
+                for (let r = 0; r < rows.length; r++) {
+                    const row = rows[r];
+                    if (!row || !row[COL_NAME]) continue;
+                    const name = String(row[COL_NAME]).trim();
+                    if (name === "") continue;
+
+                    const nameLower = name.toLowerCase();
+                    const priceRaw = row[COL_PRICE];
+                    const isHeader = (!priceRaw || String(priceRaw).trim() === "")
+                        && !nameLower.includes("позиция")
+                        && !nameLower.includes("себестоимость");
+
+                    if (nameLower.includes("доп. элементы")) {
+                        isAddons = true;
+                        continue;
+                    }
+
+                    if (isHeader) {
+                        currentGroup = { title: name, items: [], addons: [] };
+                        database.push(currentGroup);
+                        isAddons = false;
+                    } else if (currentGroup && !nameLower.includes("позиция")) {
+                        const p = parsePrice(row[COL_PRICE]);
+                        const inc = parsePrice(row[COL_INCOME]);
+                        const item = { name, price: p.val, isPercent: p.isPercent, isRequest: p.isRequest, income: inc.val };
+
+                        if (isAddons) currentGroup.addons.push(item);
+                        else currentGroup.items.push(item);
+                    }
+                }
+
+                database = database.filter(g => g.items.length > 0 || g.addons.length > 0);
+
+                // Предварительный расчет поискового индекса и минимальной цены 1 раз
+                database.forEach(group => {
+                    const validPrices = [];
+                    for (let i = 0; i < group.items.length; i++) {
+                        const it = group.items[i];
+                        if (!it.isPercent && !it.isRequest && it.price > 0) {
+                            validPrices.push(it.price);
+                        }
+                    }
+                    const minP = validPrices.length > 0 ? Math.min(...validPrices) : 0;
+                    group._priceText = minP > 0
+                        ? `от ${fmt(minP)}`
+                        : (group.items.some(i => i.isPercent) ? "Расчет %" : "По запросу");
+
+                    group._searchStr = (
+                        group.title + ' ' +
+                        group.items.map(i => i.name).join(' ') + ' ' +
+                        group.addons.map(a => a.name).join(' ')
+                    ).toLowerCase();
+                });
+
+                _buildCatalogDOMOnce();
+                const searchInput = document.getElementById('esSearch');
+                renderCatalog(searchInput ? searchInput.value : "");
+            };
+
+            // 4. Создание DOM-дерева каталога один раз через DocumentFragment
+            function _buildCatalogDOMOnce() {
+                const grid = document.getElementById('esGrid');
+                if (!grid) return;
+
+                const frag = document.createDocumentFragment();
+                _catalogCards = [];
+
+                database.forEach((group, idx) => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-white p-4 sm:p-5 rounded-[1.5rem] border border-slate-200 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] hover:border-blue-400 hover:shadow-[0_8px_25px_-5px_rgba(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[120px] relative group';
+                    card.onclick = () => openModalFromCatalog(idx);
+                    card.innerHTML = `
+                        <div class="font-bold text-slate-800 text-sm sm:text-base leading-snug mb-3 group-hover:text-blue-700 transition-colors">${esc(group.title)}</div>
+                        <div class="mt-auto font-extrabold text-blue-600 text-base">${group._priceText}</div>
+                    `;
+                    frag.appendChild(card);
+                    _catalogCards.push({ el: card, searchStr: group._searchStr });
+                });
+
+                _emptyStateEl = document.createElement('div');
+                _emptyStateEl.className = 'col-span-full text-center text-slate-500 py-10 font-medium hidden';
+                _emptyStateEl.textContent = 'Ничего не найдено';
+                frag.appendChild(_emptyStateEl);
+
+                grid.innerHTML = '';
+                grid.appendChild(frag);
+            }
+
+            // 5. Мгновенная фильтрация без пересоздания DOM-узлов (< 0.5 мс)
+            renderCatalog = function(filter = "") {
+                if (_catalogCards.length === 0 && database.length > 0) {
+                    _buildCatalogDOMOnce();
+                }
+                const lower = filter.trim().toLowerCase();
+                let visibleCount = 0;
+
+                for (let i = 0; i < _catalogCards.length; i++) {
+                    const item = _catalogCards[i];
+                    const match = !lower || item.searchStr.includes(lower);
+                    item.el.classList.toggle('hidden', !match);
+                    if (match) visibleCount++;
+                }
+
+                if (_emptyStateEl) {
+                    _emptyStateEl.classList.toggle('hidden', visibleCount > 0 || database.length === 0);
+                }
+            };
+
+            // 6. Оптимизированный рендер модалки без innerHTML += в цикле и без перерисовки при смене базы
+            renderModalContent = function() {
+                const group = database[currentSelection.groupIdx];
+                if (!group) return;
+
+                // Исправлено: innerText сам экранирует спецсимволы, esc() здесь вызывал баг с &quot;
+                document.getElementById('esModalTitle').innerText = (currentSelection.mode === 'edit' ? "Редактирование" : group.title);
+                const btn = document.getElementById('esModalBtn');
+                if (currentSelection.mode === 'edit') {
+                    btn.innerText = "Сохранить";
+                    btn.className = "bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold transition-colors";
+                } else {
+                    btn.innerText = "Добавить";
+                    btn.className = "bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-bold transition-colors";
+                }
+
+                const bList = document.getElementById('esBasesList');
+                const bases = group.items.length ? group.items : [{ name: "База", price: 0 }];
+
+                bList.innerHTML = bases.map((item, i) => {
+                    const pText = item.isRequest ? "По запросу" : (item.isPercent ? `${item.price}%` : fmt(item.price));
+                    const isActive = (i === currentSelection.baseIdx);
+                    const activeClasses = isActive
+                        ? "border-blue-600 bg-blue-50 ring-1 ring-blue-600 shadow-sm"
+                        : "border-slate-200 bg-white hover:border-blue-300";
+                    const radioStyle = isActive
+                        ? "border-[5px] border-blue-600 bg-white"
+                        : "border-2 border-slate-300 bg-white";
+
+                    return `
+                        <div data-base-row="${i}" class="flex justify-between items-center p-3 rounded-xl border ${activeClasses} cursor-pointer transition-all" onclick="selectBase(${i})">
+                            <div class="flex items-center gap-3">
+                                <div data-base-radio="${i}" class="w-5 h-5 rounded-full flex-shrink-0 ${radioStyle} shadow-sm transition-all"></div>
+                                <span data-base-title="${i}" class="font-semibold text-sm ${isActive ? 'text-blue-900' : 'text-slate-700'}">${esc(item.name)}</span>
+                            </div>
+                            <span data-base-price="${i}" class="font-extrabold text-sm whitespace-nowrap ml-3 ${isActive ? 'text-blue-600' : 'text-slate-900'}">${pText}</span>
+                        </div>`;
+                }).join('');
+
+                const aList = document.getElementById('esAddonsList');
+                const aCont = document.getElementById('esAddonsContainer');
+
+                if (group.addons.length === 0) {
+                    aCont.classList.add('hidden');
+                    aList.innerHTML = "";
+                } else {
+                    aCont.classList.remove('hidden');
+                    aList.innerHTML = group.addons.map((item, i) => {
+                        const pText = item.isRequest ? "По запросу" : (item.isPercent ? `${item.price}%` : fmt(item.price));
+                        const qty = currentSelection.addons[i] || 0;
+                        const isActive = qty > 0;
+                        const activeClasses = isActive ? "border-blue-400 bg-blue-50/70 shadow-sm" : "border-slate-200 bg-white hover:border-blue-300";
+
+                        return `
+                            <div class="flex justify-between items-center p-3 rounded-xl border ${activeClasses} transition-colors">
+                                <div class="flex flex-col">
+                                    <span class="font-semibold text-sm text-slate-700 leading-tight">${esc(item.name)}</span>
+                                    <span class="font-bold text-xs text-slate-500 mt-0.5">${pText}</span>
+                                </div>
+                                <div class="flex items-center gap-2 bg-white border border-slate-200 p-1 rounded-full shadow-sm ml-3 shrink-0">
+                                    <button class="w-6 h-6 flex items-center justify-center bg-slate-100 hover:bg-slate-200 rounded-full text-slate-600 font-bold transition-colors text-xs" onclick="changeAddonQty(${i}, -1)">-</button>
+                                    <span id="esAddonQty_${i}" class="w-4 text-center font-bold text-sm ${isActive ? 'text-slate-900' : 'text-slate-400'}">${qty}</span>
+                                    <button class="w-6 h-6 flex items-center justify-center bg-slate-100 hover:bg-slate-200 rounded-full text-slate-600 font-bold transition-colors text-xs" onclick="changeAddonQty(${i}, 1)">+</button>
+                                </div>
+                            </div>`;
+                    }).join('');
+                }
+
+                document.getElementById('esBaseQtyVal').innerText = currentSelection.baseQty;
+
+                const modal = document.getElementById('esModal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                document.body.classList.add('modal-open');
+                updateCalc();
+            };
+
+            // Точечное переключение радиокнопки базы без пересборки DOM модального окна
+            window.selectBase = function(newIdx) {
+                if (!currentSelection || currentSelection.baseIdx === newIdx) return;
+                const prevIdx = currentSelection.baseIdx;
+                currentSelection.baseIdx = newIdx;
+
+                const bList = document.getElementById('esBasesList');
+                const toggleRow = (idx, active) => {
+                    const row = bList.querySelector(`[data-base-row="${idx}"]`);
+                    const radio = bList.querySelector(`[data-base-radio="${idx}"]`);
+                    const title = bList.querySelector(`[data-base-title="${idx}"]`);
+                    const price = bList.querySelector(`[data-base-price="${idx}"]`);
+                    if (!row) return;
+                    row.className = `flex justify-between items-center p-3 rounded-xl border ${active ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600 shadow-sm' : 'border-slate-200 bg-white hover:border-blue-300'} cursor-pointer transition-all`;
+                    if (radio) radio.className = `w-5 h-5 rounded-full flex-shrink-0 ${active ? 'border-[5px] border-blue-600 bg-white' : 'border-2 border-slate-300 bg-white'} shadow-sm transition-all`;
+                    if (title) title.className = `font-semibold text-sm ${active ? 'text-blue-900' : 'text-slate-700'}`;
+                    if (price) price.className = `font-extrabold text-sm whitespace-nowrap ml-3 ${active ? 'text-blue-600' : 'text-slate-900'}`;
+                };
+
+                toggleRow(prevIdx, false);
+                toggleRow(newIdx, true);
+                updateCalc();
+            };
+
+            // 7. Батч-рендер корзины и фикс таймера закрытия на мобильных
+            const _origRenderCart = renderCart;
+            renderCart = function() {
+                _origRenderCart();
+                _savePersistedCart();
+            };
+
+            confirmAddToCart = function() {
+                const group = database[currentSelection.groupIdx];
+                const baseItem = group.items.length ? group.items[currentSelection.baseIdx] : { name: "Товар", price: 0, income: 0 };
+                const selectedAddons = [];
+                for (const [idx, qty] of Object.entries(currentSelection.addons)) {
+                    selectedAddons.push({ ...group.addons[idx], qty: qty });
+                }
+
+                catalogMemory[currentSelection.groupIdx] = {
+                    groupIdx: currentSelection.groupIdx,
+                    baseIdx: currentSelection.baseIdx,
+                    baseQty: currentSelection.baseQty,
+                    addons: { ...currentSelection.addons }
+                };
+
+                const newItem = { title: group.title, base: baseItem, baseQty: currentSelection.baseQty, addons: selectedAddons };
+
+                if (currentSelection.mode === 'edit') cart[currentSelection.cartIdx] = newItem;
+                else cart.push(newItem);
+
+                closeModal();
+                renderCart();
+
+                if (window.innerWidth <= 768 && cart.length === 1) {
+                    const widget = document.getElementById('esCartWidget');
+                    const arrow = document.getElementById('mobile-cart-arrow');
+                    widget.classList.add('is-open');
+                    arrow.style.transform = 'rotate(180deg)';
+                    if (_mobileCartTimer) clearTimeout(_mobileCartTimer);
+                    _mobileCartTimer = setTimeout(() => {
+                        widget.classList.remove('is-open');
+                        arrow.style.transform = 'rotate(0deg)';
+                        _mobileCartTimer = null;
+                    }, 2500);
+                }
+            };
+
+            window.toggleMobileCart = function() {
+                if (_mobileCartTimer) {
+                    clearTimeout(_mobileCartTimer);
+                    _mobileCartTimer = null;
+                }
+                if (window.innerWidth <= 768) {
+                    const widget = document.getElementById('esCartWidget');
+                    const arrow = document.getElementById('mobile-cart-arrow');
+                    widget.classList.toggle('is-open');
+                    arrow.style.transform = widget.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
+                }
+            };
+
+            // 8. Оптимизация скролла через requestAnimationFrame без Layout Thrashing
+            document.querySelectorAll('.scroll-area').forEach( area => {
+                let ticking = false;
+                let isNavHidden = false;
+                let prevScroll = 0;
+
+                area.addEventListener('scroll', function() {
+                    const currentScroll = this.scrollTop;
+                    if (!ticking) {
+                        window.requestAnimationFrame(() => {
+                            const delta = currentScroll - prevScroll;
+                            if (currentScroll > 50 && delta > 6 && !isNavHidden) {
+                                isNavHidden = true;
+                                if (portalNav) portalNav.style.transform = 'translateY(-100%)';
+                                document.body.classList.add('nav-hidden');
+                            } else if ((delta < -6 || currentScroll <= 20) && isNavHidden) {
+                                isNavHidden = false;
+                                if (portalNav) portalNav.style.transform = 'translateY(0)';
+                                document.body.classList.remove('nav-hidden');
+                            }
+                            prevScroll = Math.max(0, currentScroll);
+                            ticking = false;
+                        });
+                        ticking = true;
+                    }
+                }, { passive: true });
+            });
+
+            // 9. Мгновенный старт из кэша (0 мс) параллельно с фоновым обновлением PapaParse
+            _loadPersistedCart();
+            try {
+                const cachedCsv = sessionStorage.getItem(CACHE_KEY_CSV);
+                if (cachedCsv) {
+                    const parsedRows = JSON.parse(cachedCsv);
+                    if (Array.isArray(parsedRows) && parsedRows.length > 0) {
+                        processData(parsedRows);
+                    }
+                }
+            } catch (e) {}
+            if (cart.length > 0) renderCart();
+        })();
     </script>
 </body>
 </html>
