@@ -646,15 +646,15 @@ function renderCart() {
 
         document.getElementById('esSearch').addEventListener('input', (e) => renderCatalog(e.target.value));
 
-       // ==========================================================
-        // PERFORMANCE & UX PATCH v2.0 (FINAL COMPLETE)
+// ==========================================================
+        // PERFORMANCE & UX PATCH v2.1 (С ФИКСОМ ОТСТУПА ШАПКИ И ПОИСКА)
         // ==========================================================
         (() => {
             const CACHE_KEY_CSV = 'es_catalog_csv_cache_v2';
             const CACHE_KEY_CART = 'es_catalog_cart_v2';
             const CACHE_KEY_MEM = 'es_catalog_mem_v2';
 
-            // 1. Синглтон форматирования чисел (не создаёт new Intl.NumberFormat на каждый вызов)
+            // 1. Синглтон форматирования чисел
             const _RU_FMT = new Intl.NumberFormat('ru-RU');
             fmt = (n) => _RU_FMT.format(Math.round((+n || 0) * 100) / 100) + ' ₽';
 
@@ -663,7 +663,6 @@ function renderCart() {
             let _mobileCartTimer = null;
             let _lastCsvHash = '';
 
-            // Очистка кэша сессии при выходе из аккаунта
             const _origLogout = window.logout;
             window.logout = function() {
                 try {
@@ -694,7 +693,7 @@ function renderCart() {
                 } catch (e) {}
             }
 
-            // 3. Быстрый скелетон за 1 операцию innerHTML (вместо += в цикле)
+            // 3. Быстрый скелетон за 1 операцию innerHTML
             renderSkeleton = function() {
                 const grid = document.getElementById('esGrid');
                 if (!grid || database.length > 0) return;
@@ -829,7 +828,6 @@ function renderCart() {
                 }
             };
 
-            // Защита от падения, если товар в корзине был переименован в таблице
             openModalFromCart = function(cartIndex) {
                 const item = cart[cartIndex];
                 if (!item) return;
@@ -955,7 +953,7 @@ function renderCart() {
                 updateCalc();
             };
 
-            // 8. Полностью переписанный батч-рендер корзины (1 обращение к innerHTML вместо цикла appendChild)
+            // 8. Батч-рендер корзины за 1 операцию innerHTML
             renderCart = function() {
                 let fixedSum = 0, fixedInc = 0;
                 for (let i = 0; i < cart.length; i++) {
@@ -1116,25 +1114,34 @@ function renderCart() {
                 }
             };
 
-            // 9. Единый оптимизированный обработчик шапки и скролла (без дублирования и Layout Thrashing)
+            // 9. Единый оптимизированный обработчик шапки и скролла (с ResizeObserver)
             const portalNav = document.getElementById('portal-nav');
             if (portalNav) {
                 const initScrollLayout = () => {
-                    const navH = portalNav.offsetHeight;
+                    const navH = portalNav.offsetHeight || 60;
                     document.body.style.setProperty('--nav-h', navH + 'px');
                     document.querySelectorAll('.scroll-area').forEach(area => {
                         let spacer = area.querySelector('.safe-spacer');
                         if (!spacer) {
                             spacer = document.createElement('div');
                             spacer.className = 'safe-spacer shrink-0 w-full';
+                            spacer.style.flexShrink = '0';
+                            spacer.style.width = '100%';
                             area.insertBefore(spacer, area.firstChild);
                         }
                         spacer.style.height = navH + 'px';
                     });
                 };
 
-                requestAnimationFrame(initScrollLayout);
+                initScrollLayout();
+                setTimeout(initScrollLayout, 50);
+                setTimeout(initScrollLayout, 250);
+                window.addEventListener('load', initScrollLayout);
                 window.addEventListener('resize', initScrollLayout, { passive: true });
+
+                if (typeof ResizeObserver !== 'undefined') {
+                    new ResizeObserver(initScrollLayout).observe(portalNav);
+                }
 
                 document.querySelectorAll('.scroll-area').forEach(scrollArea => {
                     let ticking = false;
@@ -1164,7 +1171,7 @@ function renderCart() {
                 });
             }
 
-            // 10. Мгновенная отрисовка из кэша сессии (0 мс) до завершения загрузки Google Sheets
+            // 10. Мгновенная отрисовка из кэша сессии (0 мс)
             _loadPersistedCart();
             try {
                 const cachedCsv = sessionStorage.getItem(CACHE_KEY_CSV);
