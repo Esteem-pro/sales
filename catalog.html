@@ -754,9 +754,8 @@ function renderCart() {
                 }
 
                 database = database.filter(g => g.items.length > 0 || g.addons.length > 0);
-                database.sort((a, b) => a.title.localeCompare(b.title, 'ru', { sensitivity: 'base', numeric: true }));
-
                 
+
                 database.forEach(group => {
                     let minP = Infinity;
                     for (let i = 0; i < group.items.length; i++) {
