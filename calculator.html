@@ -182,8 +182,8 @@
             { name: "Бустер детский", weight: 5, customs: 1200, qty: 0 },
             { name: "Каска", weight: 1.5, customs: 1500, qty: 0 },
             { name: "Номерная рамка", weight: 1, customs: 1500, qty: 0 },
-            { name: "Чехол на ключ", weight: 0.2, customs: 764.35, qty: 0 },
-            { name: "Подушка", weight: 1, customs: 821.74, qty: 0 }
+            { name: "Чехол на ключ", weight: 0, customs: 804.35, qty: 0 },
+            { name: "Подушка", weight: 0, customs: 1021.74, qty: 0 }
         ];
 
         // Вычисляем базовую стоимость 1 штуки (Вес * 200 + растаможка)
@@ -201,10 +201,15 @@
                 let card = document.createElement('div');
                 card.className = 'bg-white p-4 sm:p-5 rounded-[1.5rem] border border-slate-200 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] flex flex-col justify-between transition-all hover:border-blue-400 hover:shadow-[0_8px_25px_-5px_rgba(0,0,0,0.06)]';
                 
+                // Показываем строку с весом только если weight > 0
+                const weightHtml = item.weight > 0 
+                    ? `<div class="text-slate-400 text-xs mb-1">${item.weight} кг</div>` 
+                    : '';
+
                 card.innerHTML = `
                     <div class="mb-4">
                         <div class="font-bold text-slate-800 text-sm sm:text-base leading-snug mb-1">${item.name}</div>
-                        <div class="text-slate-400 text-xs mb-1">${item.weight} кг</div>
+                        ${weightHtml}
                         <div class="text-slate-600 text-sm font-bold">${fmt(item.price)} / шт.</div>
                     </div>
                     <div class="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
