@@ -89,6 +89,9 @@
                 <div id="search-container" class="sticky z-40 w-full pointer-events-none mb-4">
                     <div class="relative shadow-[0_8px_30px_rgb(0,0,0,0.06)] rounded-[1.2rem] bg-white/80 backdrop-blur-xl border border-white/60 px-5 py-4 flex items-center justify-between pointer-events-auto w-full">
                         <h1 class="font-extrabold text-slate-800 text-lg">Калькулятор доставки</h1>
+                        <button onclick="openAddItemModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition">
+                            + Добавить
+                        </button>
                     </div>
                 </div>
 
@@ -136,10 +139,25 @@
                                     <span id="calcPercentSum" class="text-blue-600">+ 0 ₽</span>
                                 </div>
                             </div>
+                            
+                            <!-- Обновленный блок Итого с ручным вводом -->
                             <div class="flex justify-between items-end mb-4">
-                                <span class="text-slate-500 font-bold mb-1">Итого к оплате:</span>
-                                <span id="calcTotalSum" class="text-2xl font-extrabold text-slate-900 tracking-tight">0 ₽</span>
+                                <span class="text-slate-500 font-bold mb-1 shrink-0">Итого к оплате:</span>
+                                <div class="flex items-center gap-1.5 min-w-0">
+                                    <input type="number" id="manualTotalInput" class="hidden w-24 text-right text-xl font-extrabold text-slate-900 border-b-2 border-blue-500 outline-none bg-transparent p-0 m-0" onblur="applyManualTotal()" onkeydown="if(event.key==='Enter') applyManualTotal()">
+                                    
+                                    <span id="calcTotalSum" class="text-2xl font-extrabold text-slate-900 tracking-tight cursor-pointer hover:opacity-80 transition truncate" onclick="enableManualTotal()">0 ₽</span>
+                                    
+                                    <button id="editTotalBtn" onclick="enableManualTotal()" class="text-slate-400 hover:text-blue-600 transition p-1 shrink-0" title="Изменить вручную">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                    </button>
+                                    
+                                    <button id="resetTotalBtn" onclick="resetManualTotal()" class="hidden text-rose-500 hover:text-rose-600 transition p-1 shrink-0" title="Вернуть авто-расчет">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                    </button>
+                                </div>
                             </div>
+                            
                             <button class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold p-3 rounded-[1rem] transition-colors text-sm" onclick="clearCalculator(event)">
                                 Сбросить расчет
                             </button>
@@ -147,6 +165,33 @@
                         
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА ДОБАВЛЕНИЯ ПОЗИЦИИ -->
+    <div id="addItemModal" class="hidden fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl relative">
+            <h3 class="text-xl font-bold mb-4">Новая позиция</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 mb-1">Название</label>
+                    <input type="text" id="newItemName" class="w-full border border-slate-200 rounded-lg p-2.5 outline-none focus:border-blue-500" placeholder="Например: Спец. коврик">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1">Вес (кг)</label>
+                        <input type="number" id="newItemWeight" class="w-full border border-slate-200 rounded-lg p-2.5 outline-none focus:border-blue-500" value="0" step="0.1">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1">Растаможка (₽)</label>
+                        <input type="number" id="newItemCustoms" class="w-full border border-slate-200 rounded-lg p-2.5 outline-none focus:border-blue-500" value="0">
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeAddItemModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition">Отмена</button>
+                <button onclick="addNewItem()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition">Добавить</button>
             </div>
         </div>
     </div>
@@ -164,7 +209,10 @@
         const ORDER_CONSTANT = 500;
         const DELIVERY_PERCENT = 0.15; 
         
-// НОВАЯ СТРУКТУРА ДАННЫХ
+        // Переменные для ручного ввода суммы
+        let manualTotalValue = null;
+        let currentCalculatedTotal = 0;
+
         let deliveryItems = [
             { name: "2д комплект 2 ряда", weight: 6, customs: 3083, qty: 0 },
             { name: "2д комплект 3 ряда", weight: 7, customs: 2883, qty: 0 },
@@ -188,7 +236,7 @@
             { name: "Защита спинок сидений", weight: 0, customs: 2108.70, qty: 0 }
         ];
 
-        // Вычисляем базовую стоимость 1 штуки (Вес * 200 + растаможка)
+        // Первичный расчет базовой стоимости
         deliveryItems.forEach(item => {
             item.price = (item.weight * PRICE_PER_KG) + item.customs;
         });
@@ -203,7 +251,6 @@
                 let card = document.createElement('div');
                 card.className = 'bg-white p-4 sm:p-5 rounded-[1.5rem] border border-slate-200 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] flex flex-col justify-between transition-all hover:border-blue-400 hover:shadow-[0_8px_25px_-5px_rgba(0,0,0,0.06)]';
                 
-                // Показываем строку с весом только если weight > 0
                 const weightHtml = item.weight > 0 
                     ? `<div class="text-slate-400 text-xs mb-1">${item.weight} кг</div>` 
                     : '';
@@ -278,16 +325,26 @@
 
             if(itemsCount === 0) list.innerHTML = "<div class='text-center py-8 text-slate-400 font-medium text-sm'>Добавьте позиции</div>";
 
-            // Логика расчета по новой формуле
             let constantSum = itemsCount > 0 ? ORDER_CONSTANT : 0;
             let subTotal = baseTotal + constantSum;
             let percentSum = subTotal * DELIVERY_PERCENT;
-            let finalSum = subTotal + percentSum;
+            currentCalculatedTotal = subTotal + percentSum;
 
             document.getElementById('calcBaseSum').innerText = fmt(baseTotal);
             document.getElementById('calcConstantSum').innerText = '+ ' + fmt(constantSum);
             document.getElementById('calcPercentSum').innerText = '+ ' + fmt(percentSum);
-            document.getElementById('calcTotalSum').innerText = fmt(finalSum);
+
+            // Отрисовка итога (автоматический или ручной)
+            const sumEl = document.getElementById('calcTotalSum');
+            if (manualTotalValue !== null) {
+                sumEl.innerText = fmt(manualTotalValue);
+                sumEl.classList.add('text-indigo-600');
+                document.getElementById('resetTotalBtn').classList.remove('hidden');
+            } else {
+                sumEl.innerText = fmt(currentCalculatedTotal);
+                sumEl.classList.remove('text-indigo-600');
+                document.getElementById('resetTotalBtn').classList.add('hidden');
+            }
 
             const badge = document.getElementById('cart-count-badge');
             if(itemsCount > 0) {
@@ -297,10 +354,102 @@
             }
         }
 
+        // --- ЛОГИКА РУЧНОГО ИТОГА ---
+        function enableManualTotal() {
+            document.getElementById('calcTotalSum').classList.add('hidden');
+            document.getElementById('editTotalBtn').classList.add('hidden');
+            
+            const input = document.getElementById('manualTotalInput');
+            input.classList.remove('hidden');
+            input.value = manualTotalValue !== null ? manualTotalValue : Math.round(currentCalculatedTotal);
+            input.focus();
+            
+            document.getElementById('resetTotalBtn').classList.remove('hidden');
+        }
+
+        function applyManualTotal() {
+            const input = document.getElementById('manualTotalInput');
+            const val = parseFloat(input.value);
+            
+            if (!isNaN(val) && val >= 0) {
+                manualTotalValue = val;
+            } else {
+                manualTotalValue = null;
+            }
+            
+            input.classList.add('hidden');
+            document.getElementById('calcTotalSum').classList.remove('hidden');
+            document.getElementById('editTotalBtn').classList.remove('hidden');
+            
+            updateSummary();
+        }
+
+        function resetManualTotal() {
+            manualTotalValue = null;
+            document.getElementById('manualTotalInput').classList.add('hidden');
+            document.getElementById('calcTotalSum').classList.remove('hidden');
+            document.getElementById('editTotalBtn').classList.remove('hidden');
+            updateSummary();
+        }
+
+        // --- ЛОГИКА ДОБАВЛЕНИЯ ПОЗИЦИЙ ---
+        function openAddItemModal() {
+            document.getElementById('addItemModal').classList.remove('hidden');
+            document.body.classList.add('modal-open');
+        }
+
+        function closeAddItemModal() {
+            document.getElementById('addItemModal').classList.add('hidden');
+            document.body.classList.remove('modal-open');
+            document.getElementById('newItemName').value = '';
+            document.getElementById('newItemWeight').value = '0';
+            document.getElementById('newItemCustoms').value = '0';
+        }
+
+        function addNewItem() {
+            const name = document.getElementById('newItemName').value.trim();
+            const weight = parseFloat(document.getElementById('newItemWeight').value) || 0;
+            const customs = parseFloat(document.getElementById('newItemCustoms').value) || 0;
+            
+            if(!name) { 
+                alert('Пожалуйста, введите название позиции'); 
+                return; 
+            }
+
+            const newItem = {
+                name: name,
+                weight: weight,
+                customs: customs,
+                qty: 1
+            };
+            
+            newItem.price = (newItem.weight * PRICE_PER_KG) + newItem.customs;
+            deliveryItems.push(newItem);
+            
+            closeAddItemModal();
+            renderItems();
+            updateSummary();
+            
+            // Если на мобилке и корзина была закрыта, открываем её при добавлении
+            if (window.innerWidth <= 768) {
+                const widget = document.getElementById('esCartWidget');
+                if (!widget.classList.contains('is-open')) toggleMobileCart();
+            }
+        }
+
         window.clearCalculator = function(e) { 
             if(e) e.stopPropagation(); 
             deliveryItems.forEach(item => item.qty = 0);
-            renderItems(); updateSummary();
+            
+            // Сброс ручного итога при очистке калькулятора
+            manualTotalValue = null;
+            document.getElementById('manualTotalInput').classList.add('hidden');
+            document.getElementById('calcTotalSum').classList.remove('hidden');
+            document.getElementById('editTotalBtn').classList.remove('hidden');
+            
+            renderItems(); 
+            updateSummary();
+            
             if(window.innerWidth <= 768) {
                 document.getElementById('esCartWidget').classList.remove('is-open');
                 document.getElementById('mobile-cart-arrow').style.transform = 'rotate(0deg)';
