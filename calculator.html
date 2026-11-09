@@ -298,12 +298,13 @@
                 firebase.initializeApp(firebaseConfig);
             }
             db = firebase.database();
-            calcRef = db.ref('portal_calculator/items_v2');
+            // Используем ветку внутри portal_materials, чтобы сразу работали те же правила безопасности
+            calcRef = db.ref('portal_materials/calculator_items');
         } catch (err) {
             console.error('Ошибка инициализации Firebase:', err);
         }
 
-        const CACHE_CALC_KEY = 'sales_portal_calculator_items_v3';
+        const CACHE_CALC_KEY = 'sales_portal_calculator_items_v4';
 
         // Итоговые цены со всеми сборами и наценкой 15% из первого кода:
         // Формула: Math.round(((weight * 200 + customs) + 500) * 1.15)
@@ -336,6 +337,12 @@
         let realtimeSubscribed = false;
 
         const fmt = (n) => new Intl.NumberFormat('ru-RU').format(Math.round(Number(n) || 0)) + ' ₽';
+
+        function formatDateTime(dateObj) {
+            const d = dateObj.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const t = dateObj.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            return `${d} в ${t}`;
+        }
 
         // ==========================================
         // 2. АВТОРИЗАЦИЯ И СТАРТ СТРАНИЦЫ
@@ -546,8 +553,24 @@
                        </span>`
                     : `<span class="inline-flex items-center text-[11px] font-semibold text-slate-400 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-lg">Без веса</span>`;
 
+                // Подпись о том, кто и когда последним менял или создавал карточку
+                let auditHtml = '';
+                if (item.editedBy && item.editedAt) {
+                    auditHtml = `
+                        <div class="text-[11px] text-slate-400 font-medium mt-1.5 flex items-center gap-1 truncate" title="Изменил(а): ${escapeHtml(item.editedBy)} • ${escapeHtml(item.editedAt)}">
+                            <svg class="w-3 h-3 text-slate-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span class="truncate">Изм.: <strong class="font-semibold text-slate-500">${escapeHtml(item.editedBy)}</strong> • ${escapeHtml(item.editedAt)}</span>
+                        </div>`;
+                } else if (item.createdBy && item.createdAt) {
+                    auditHtml = `
+                        <div class="text-[11px] text-slate-400 font-medium mt-1.5 flex items-center gap-1 truncate" title="Добавил(а): ${escapeHtml(item.createdBy)} • ${escapeHtml(item.createdAt)}">
+                            <svg class="w-3 h-3 text-slate-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            <span class="truncate">Добавил(а): <strong class="font-semibold text-slate-500">${escapeHtml(item.createdBy)}</strong> • ${escapeHtml(item.createdAt)}</span>
+                        </div>`;
+                }
+
                 card.innerHTML = `
-                    <div>
+                    <div class="mb-4">
                         <!-- Верхняя панель: вес + кнопки управления -->
                         <div class="flex items-center justify-between gap-2 mb-2.5">
                             ${weightBadge}
@@ -562,14 +585,17 @@
                         </div>
 
                         <!-- Название позиции -->
-                        <h3 class="font-extrabold text-slate-900 text-sm sm:text-base leading-snug mb-1.5 group-hover:text-blue-600 transition-colors">
+                        <h3 class="font-extrabold text-slate-900 text-sm sm:text-base leading-snug mb-1 group-hover:text-blue-600 transition-colors">
                             ${escapeHtml(item.name)}
                         </h3>
 
                         <!-- Статическое отображение цены за 1 шт. -->
-                        <div class="text-xs font-bold text-slate-400 mb-4">
+                        <div class="text-xs font-bold text-slate-500">
                             ${fmt(item.price)} / шт.
                         </div>
+
+                        <!-- Подпись об авторе и дате изменений -->
+                        ${auditHtml}
                     </div>
 
                     <!-- Нижняя панель: Итог по карточке + счетчик количества -->
@@ -746,6 +772,8 @@
 
             const price = Math.max(0, Number(priceRaw) || 0);
             const weight = weightRaw !== '' && Number(weightRaw) > 0 ? Number(weightRaw) : null;
+            const currentUser = localStorage.getItem('sales_dash_user') || 'Менеджер';
+            const dateStr = formatDateTime(new Date());
 
             try {
                 saveBtn.disabled = true;
@@ -759,7 +787,9 @@
                         id: editingItemId,
                         name,
                         price,
-                        weight
+                        weight,
+                        editedBy: currentUser,
+                        editedAt: dateStr
                     };
 
                     if (calcRef) {
@@ -767,11 +797,12 @@
                     } else {
                         const idx = deliveryItems.findIndex(i => i.id === editingItemId);
                         if (idx !== -1) deliveryItems[idx] = updatedItem;
+                        localStorage.setItem(CACHE_CALC_KEY, JSON.stringify(deliveryItems));
                         renderItems();
                         updateSummary();
                     }
                     closeItemModal();
-                    showToast('Позиция обновлена');
+                    showToast('Изменения сохранены');
                 } else {
                     const id = 'item_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5);
                     const maxOrder = deliveryItems.reduce((max, i) => Math.max(max, i.order || 0), 0);
@@ -780,13 +811,16 @@
                         name,
                         price,
                         weight,
-                        order: maxOrder + 1
+                        order: maxOrder + 1,
+                        createdBy: currentUser,
+                        createdAt: dateStr
                     };
 
                     if (calcRef) {
                         await calcRef.child(id).set(newItem);
                     } else {
                         deliveryItems.push(newItem);
+                        localStorage.setItem(CACHE_CALC_KEY, JSON.stringify(deliveryItems));
                         renderItems();
                         updateSummary();
                     }
@@ -795,7 +829,7 @@
                 }
             } catch (error) {
                 console.error('Ошибка сохранения позиции:', error);
-                errEl.innerText = 'Не удалось сохранить изменения.';
+                errEl.innerText = 'Не удалось сохранить в облако. Проверьте подключение.';
                 errEl.classList.remove('hidden');
             } finally {
                 saveBtn.disabled = false;
@@ -807,7 +841,7 @@
         async function deleteCalcItem(id) {
             const item = deliveryItems.find(i => i.id === id);
             if (!item) return;
-            if (!confirm(`Удалить позицию «${item.name}» из калькулятора?`)) return;
+            if (!confirm(`Удалить позицию «${item.name}» у всех пользователей калькулятора?`)) return;
 
             try {
                 setSyncIndicator(true);
@@ -816,6 +850,7 @@
                     await calcRef.child(id).remove();
                 } else {
                     deliveryItems = deliveryItems.filter(i => i.id !== id);
+                    localStorage.setItem(CACHE_CALC_KEY, JSON.stringify(deliveryItems));
                     renderItems();
                     updateSummary();
                 }
