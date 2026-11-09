@@ -188,9 +188,25 @@
             { name: "Защита спинок сидений", weight: 0, customs: 2108.70, qty: 0 }
         ];
 
+      // Список позиций, на которые НЕ действует скидка 15%
+        const excludedFromDiscount = [
+            "Подушка", 
+            "Чехол на ключ", 
+            "Номерная рамка", 
+            "Каска", 
+            "Ложка длинная без тубуса"
+        ];
+
         // Вычисляем базовую стоимость 1 штуки (Вес * 200 + растаможка)
         deliveryItems.forEach(item => {
-            item.price = (item.weight * PRICE_PER_KG) + item.customs;
+            let basePrice = (item.weight * PRICE_PER_KG) + item.customs;
+            
+            // Если позиции нет в списке исключений, снижаем ее стоимость на 15%
+            if (!excludedFromDiscount.includes(item.name)) {
+                basePrice = basePrice * 0.85;
+            }
+            
+            item.price = basePrice;
         });
 
         const fmt = (n) => new Intl.NumberFormat('ru-RU').format(Math.round(n)) + ' ₽';
