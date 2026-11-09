@@ -127,8 +127,8 @@
                 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Итоговая цена (₽) *</label>
-                        <input type="number" id="item-price-input" step="any" min="0" placeholder="5500" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Цена (₽) *</label>
+                        <input type="number" id="item-price-input" step="any" min="0" placeholder="4500" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none">
                     </div>
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Вес, кг (необяз.)</label>
@@ -181,7 +181,7 @@
                         Синхронизация
                     </span>
                 </h1>
-                <p class="text-xs text-slate-500 font-medium mt-0.5">Расчет стоимости позиций и общего веса отправления</p>
+                <p class="text-xs text-slate-500 font-medium mt-0.5">Нажмите на цену в карточке для быстрого изменения стоимости</p>
             </div>
 
             <div class="flex items-center gap-2 w-full sm:w-auto">
@@ -298,36 +298,35 @@
                 firebase.initializeApp(firebaseConfig);
             }
             db = firebase.database();
-            calcRef = db.ref('portal_calculator/items_v2');
+            calcRef = db.ref('portal_calculator/items');
         } catch (err) {
             console.error('Ошибка инициализации Firebase:', err);
         }
 
-        const CACHE_CALC_KEY = 'sales_portal_calculator_items_v3';
+        const CACHE_CALC_KEY = 'sales_portal_calculator_items_v2';
 
-        // Итоговые цены со всеми сборами и наценкой 15% из первого кода:
-        // Формула: Math.round(((weight * 200 + customs) + 500) * 1.15)
+        // Дефолтные позиции (используются для первичного заполнения базы)
         const DEFAULT_ITEMS = [
-            { id: "item_1", name: "2д комплект 2 ряда", weight: 6, price: 5500, order: 1 },
-            { id: "item_2", name: "2д комплект 3 ряда", weight: 7, price: 5500, order: 2 },
-            { id: "item_3", name: "3д комплект", weight: 10, price: 5500, order: 3 },
-            { id: "item_4", name: "3д комплект с багажником", weight: 12, price: 6210, order: 4 },
-            { id: "item_5", name: "Коврики для минивэна", weight: 15, price: 6900, order: 5 },
-            { id: "item_6", name: "Коврик багажник", weight: 2, price: 3910, order: 6 },
-            { id: "item_7", name: "Багажный ковёр + защита бортов", weight: 2.4, price: 4577, order: 7 },
-            { id: "item_8", name: "Сумка", weight: 3, price: 3565, order: 8 },
-            { id: "item_9", name: "Органайзер", weight: 8, price: 4140, order: 9 },
-            { id: "item_10", name: "Чемодан", weight: 5, price: 3450, order: 10 },
-            { id: "item_11", name: "Ложка длинная без тубуса", weight: 1.5, price: 2415, order: 11 },
-            { id: "item_12", name: "Ложка длинная с тубусом", weight: 2.5, price: 1495, order: 12 },
-            { id: "item_13", name: "Картина 50х70", weight: 5, price: 5175, order: 13 },
-            { id: "item_14", name: "Бустер детский", weight: 5, price: 3105, order: 14 },
-            { id: "item_15", name: "Каска", weight: 1.5, price: 2645, order: 15 },
-            { id: "item_16", name: "Номерная рамка", weight: 1, price: 2530, order: 16 },
-            { id: "item_17", name: "Чехол на ключ", weight: null, price: 1500, order: 17 },
-            { id: "item_18", name: "Подушка", weight: null, price: 1750, order: 18 },
-            { id: "item_19", name: "Багажный ковер-трансформер", weight: null, price: 5000, order: 19 },
-            { id: "item_20", name: "Защита спинок сидений", weight: null, price: 3000, order: 20 }
+            { id: "item_1", name: "2д комплект 2 ряда", weight: 6, price: 4283, order: 1 },
+            { id: "item_2", name: "2д комплект 3 ряда", weight: 7, price: 4283, order: 2 },
+            { id: "item_3", name: "3д комплект", weight: 10, price: 4283, order: 3 },
+            { id: "item_4", name: "3д комплект с багажником", weight: 12, price: 4900, order: 4 },
+            { id: "item_5", name: "Коврики для минивэна", weight: 15, price: 5500, order: 5 },
+            { id: "item_6", name: "Коврик багажник", weight: 2, price: 2900, order: 6 },
+            { id: "item_7", name: "Багажный ковёр + защита бортов", weight: 2.4, price: 3480, order: 7 },
+            { id: "item_8", name: "Сумка", weight: 3, price: 2600, order: 8 },
+            { id: "item_9", name: "Органайзер", weight: 8, price: 3100, order: 9 },
+            { id: "item_10", name: "Чемодан", weight: 5, price: 2500, order: 10 },
+            { id: "item_11", name: "Ложка длинная без тубуса", weight: 1.5, price: 1600, order: 11 },
+            { id: "item_12", name: "Ложка длинная с тубусом", weight: 2.5, price: 800, order: 12 },
+            { id: "item_13", name: "Картина 50х70", weight: 5, price: 4000, order: 13 },
+            { id: "item_14", name: "Бустер детский", weight: 5, price: 2200, order: 14 },
+            { id: "item_15", name: "Каска", weight: 1.5, price: 1800, order: 15 },
+            { id: "item_16", name: "Номерная рамка", weight: 1, price: 1700, order: 16 },
+            { id: "item_17", name: "Чехол на ключ", weight: null, price: 804, order: 17 },
+            { id: "item_18", name: "Подушка", weight: null, price: 1022, order: 18 },
+            { id: "item_19", name: "Багажный ковер-трансформер", weight: null, price: 3848, order: 19 },
+            { id: "item_20", name: "Защита спинок сидений", weight: null, price: 2109, order: 20 }
         ];
 
         let deliveryItems = [];
@@ -467,7 +466,7 @@
             calcRef.on('value', async (snapshot) => {
                 const val = snapshot.val();
 
-                // Если в базе еще нет данных — загружаем стартовый набор с полными ценами
+                // Если в базе еще нет данных — загружаем стартовый набор
                 if (!val) {
                     const seedObj = {};
                     DEFAULT_ITEMS.forEach(item => { seedObj[item.id] = item; });
@@ -494,7 +493,7 @@
         }
 
         // ==========================================
-        // 4. ОТРИСОВКА КАРТОЧЕК
+        // 4. ОТРИСОВКА КАРТОЧЕК И ПРЯМОЕ РЕДАКТИРОВАНИЕ ЦЕНЫ
         // ==========================================
         function updateCounterBadge() {
             const counter = document.getElementById('items-counter');
@@ -562,21 +561,34 @@
                         </div>
 
                         <!-- Название позиции -->
-                        <h3 class="font-extrabold text-slate-900 text-sm sm:text-base leading-snug mb-1.5 group-hover:text-blue-600 transition-colors">
+                        <h3 class="font-extrabold text-slate-900 text-sm sm:text-base leading-snug mb-3 group-hover:text-blue-600 transition-colors">
                             ${escapeHtml(item.name)}
                         </h3>
 
-                        <!-- Статическое отображение цены за 1 шт. -->
-                        <div class="text-xs font-bold text-slate-400 mb-4">
-                            ${fmt(item.price)} / шт.
+                        <!-- Поле быстрого изменения цены прямо в карточке -->
+                        <div class="bg-slate-50/90 border border-slate-200/80 rounded-xl px-3 py-2 mb-4 flex items-center justify-between gap-2 focus-within:ring-2 focus-within:ring-blue-500 focus-within:bg-white focus-within:border-blue-400 transition">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Цена за шт.</span>
+                            <div class="flex items-center gap-1">
+                                <input 
+                                    type="number" 
+                                    step="any" 
+                                    min="0"
+                                    value="${Math.round(Number(item.price) || 0)}" 
+                                    onkeydown="if(event.key==='Enter'){this.blur();}"
+                                    onchange="updateInlinePrice('${escapeHtml(item.id)}', this.value)"
+                                    class="w-24 text-right bg-transparent font-extrabold text-slate-900 text-sm outline-none"
+                                    title="Нажмите, чтобы изменить стоимость"
+                                >
+                                <span class="text-xs font-bold text-slate-400">₽</span>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Нижняя панель: Итог по карточке + счетчик количества -->
                     <div class="flex items-center justify-between mt-auto pt-3 border-t border-slate-100">
                         <div>
-                            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Стоимость</div>
-                            <span class="font-extrabold ${isSelected ? 'text-blue-600' : 'text-slate-800'} text-base">
+                            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Сумма</div>
+                            <span class="font-extrabold ${isSelected ? 'text-blue-600' : 'text-slate-700'} text-base">
                                 ${fmt(item.price * (qty > 0 ? qty : 1))}
                             </span>
                         </div>
@@ -591,6 +603,32 @@
             });
 
             grid.appendChild(fragment);
+        }
+
+        async function updateInlinePrice(id, rawValue) {
+            const item = deliveryItems.find(i => i.id === id);
+            if (!item) return;
+
+            const newPrice = Math.max(0, Number(rawValue) || 0);
+            if (newPrice === Number(item.price)) return;
+
+            item.price = newPrice;
+            localStorage.setItem(CACHE_CALC_KEY, JSON.stringify(deliveryItems));
+            renderItems();
+            updateSummary();
+
+            if (calcRef) {
+                try {
+                    setSyncIndicator(true);
+                    await calcRef.child(id).update({ price: newPrice });
+                    showToast('Стоимость обновлена');
+                } catch (e) {
+                    console.error('Ошибка сохранения цены:', e);
+                    showToast('Сохранено локально');
+                } finally {
+                    setSyncIndicator(false);
+                }
+            }
         }
 
         // ==========================================
@@ -739,7 +777,7 @@
             const saveBtnText = document.getElementById('save-btn-text');
 
             if (!name || priceRaw === '') {
-                errEl.innerText = 'Укажите название и итоговую цену позиции';
+                errEl.innerText = 'Укажите название и цену позиции';
                 errEl.classList.remove('hidden');
                 return;
             }
