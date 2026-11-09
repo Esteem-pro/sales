@@ -89,16 +89,16 @@
                 <div id="search-container" class="sticky z-40 w-full pointer-events-none mb-4">
                     <div class="relative shadow-[0_8px_30px_rgb(0,0,0,0.06)] rounded-[1.2rem] bg-white/80 backdrop-blur-xl border border-white/60 px-5 py-4 flex items-center justify-between pointer-events-auto w-full">
                         <h1 class="font-extrabold text-slate-800 text-lg">Калькулятор доставки</h1>
-                        <button onclick="openAddItemModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition">
+                        <button onclick="openItemModal(-1)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition">
                             + Добавить
                         </button>
                     </div>
                 </div>
 
-                <!-- ИНФОРМАЦИОННАЯ ПЛАШКА СДЭК -->
+                <!-- ИНФОРМАЦИОННАЯ ПЛАШКА -->
                 <div class="mb-6 bg-indigo-50/80 border border-indigo-100 text-indigo-800 text-sm p-4 rounded-[1.2rem] shadow-sm flex items-start gap-3">
                     <svg class="w-6 h-6 shrink-0 text-indigo-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <p class="leading-relaxed font-medium">Сумма доставки из Москвы до получателя (курьерская по Москве / авиа курьер в другой город) рассчитывается в СДЭК и оплачивается в компанию СДЭК получателем при получении посылки.</p>
+                    <p class="leading-relaxed font-medium">Сумма доставки из Москвы до получателя рассчитывается и оплачивается в компанию СДЭК получателем при получении посылки.</p>
                 </div>
 
                 <div id="calcGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
@@ -125,37 +125,9 @@
                         </div>
 
                         <div class="p-4 sm:p-5 bg-white border-t border-slate-100 shrink-0">
-                            <div class="space-y-2 mb-4 border-b border-dashed border-slate-200 pb-4">
-                                <div class="flex justify-between text-sm font-semibold text-slate-500">
-                                    <span>Сумма позиций:</span>
-                                    <span id="calcBaseSum" class="text-slate-800">0 ₽</span>
-                                </div>
-                                <div class="flex justify-between text-sm font-semibold text-slate-500">
-                                    <span>Сбор за заказ:</span>
-                                    <span id="calcConstantSum" class="text-slate-800">+ 0 ₽</span>
-                                </div>
-                                <div class="flex justify-between text-sm font-semibold text-slate-500">
-                                    <span>Комиссия (15%):</span>
-                                    <span id="calcPercentSum" class="text-blue-600">+ 0 ₽</span>
-                                </div>
-                            </div>
-                            
-                            <!-- Обновленный блок Итого с ручным вводом -->
                             <div class="flex justify-between items-end mb-4">
                                 <span class="text-slate-500 font-bold mb-1 shrink-0">Итого к оплате:</span>
-                                <div class="flex items-center gap-1.5 min-w-0">
-                                    <input type="number" id="manualTotalInput" class="hidden w-24 text-right text-xl font-extrabold text-slate-900 border-b-2 border-blue-500 outline-none bg-transparent p-0 m-0" onblur="applyManualTotal()" onkeydown="if(event.key==='Enter') applyManualTotal()">
-                                    
-                                    <span id="calcTotalSum" class="text-2xl font-extrabold text-slate-900 tracking-tight cursor-pointer hover:opacity-80 transition truncate" onclick="enableManualTotal()">0 ₽</span>
-                                    
-                                    <button id="editTotalBtn" onclick="enableManualTotal()" class="text-slate-400 hover:text-blue-600 transition p-1 shrink-0" title="Изменить вручную">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                                    </button>
-                                    
-                                    <button id="resetTotalBtn" onclick="resetManualTotal()" class="hidden text-rose-500 hover:text-rose-600 transition p-1 shrink-0" title="Вернуть авто-расчет">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                                    </button>
-                                </div>
+                                <span id="calcTotalSum" class="text-2xl font-extrabold text-slate-900 tracking-tight truncate">0 ₽</span>
                             </div>
                             
                             <button class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold p-3 rounded-[1rem] transition-colors text-sm" onclick="clearCalculator(event)">
@@ -169,29 +141,29 @@
         </div>
     </div>
 
-    <!-- МОДАЛКА ДОБАВЛЕНИЯ ПОЗИЦИИ -->
-    <div id="addItemModal" class="hidden fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <!-- УНИВЕРСАЛЬНАЯ МОДАЛКА (ДОБАВЛЕНИЕ / РЕДАКТИРОВАНИЕ) -->
+    <div id="itemModal" class="hidden fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl relative">
-            <h3 class="text-xl font-bold mb-4">Новая позиция</h3>
+            <h3 id="modalTitle" class="text-xl font-bold mb-4">Новая позиция</h3>
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-semibold text-slate-600 mb-1">Название</label>
-                    <input type="text" id="newItemName" class="w-full border border-slate-200 rounded-lg p-2.5 outline-none focus:border-blue-500" placeholder="Например: Спец. коврик">
+                    <input type="text" id="modalItemName" class="w-full border border-slate-200 rounded-lg p-2.5 outline-none focus:border-blue-500 font-medium" placeholder="Например: Спец. коврик">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-1">Вес (кг)</label>
-                        <input type="number" id="newItemWeight" class="w-full border border-slate-200 rounded-lg p-2.5 outline-none focus:border-blue-500" value="0" step="0.1">
+                        <label class="block text-sm font-semibold text-slate-600 mb-1">Цена (₽)</label>
+                        <input type="number" id="modalItemPrice" class="w-full border border-slate-200 rounded-lg p-2.5 outline-none focus:border-blue-500 font-medium" value="0">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-1">Растаможка (₽)</label>
-                        <input type="number" id="newItemCustoms" class="w-full border border-slate-200 rounded-lg p-2.5 outline-none focus:border-blue-500" value="0">
+                        <label class="block text-sm font-semibold text-slate-600 mb-1">Вес, кг <span class="text-slate-400 font-normal">(необяз.)</span></label>
+                        <input type="number" id="modalItemWeight" class="w-full border border-slate-200 rounded-lg p-2.5 outline-none focus:border-blue-500 font-medium" step="0.1" placeholder="0">
                     </div>
                 </div>
             </div>
             <div class="flex gap-3 mt-6">
-                <button onclick="closeAddItemModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition">Отмена</button>
-                <button onclick="addNewItem()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition">Добавить</button>
+                <button onclick="closeItemModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition">Отмена</button>
+                <button onclick="saveItem()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition">Сохранить</button>
             </div>
         </div>
     </div>
@@ -204,42 +176,31 @@
             window.location.href = 'index.html';
         }
 
-        // КОНСТАНТЫ ДЛЯ РАСЧЕТА
-        const PRICE_PER_KG = 200;
-        const ORDER_CONSTANT = 500;
-        const DELIVERY_PERCENT = 0.15; 
-        
-        // Переменные для ручного ввода суммы
-        let manualTotalValue = null;
-        let currentCalculatedTotal = 0;
-
+        // Обновленная структура данных (пересчитанные базовые цены)
         let deliveryItems = [
-            { name: "2д комплект 2 ряда", weight: 6, customs: 3083, qty: 0 },
-            { name: "2д комплект 3 ряда", weight: 7, customs: 2883, qty: 0 },
-            { name: "3д комплект", weight: 10, customs: 2283, qty: 0 },
-            { name: "3д комплект с багажником", weight: 12, customs: 2500, qty: 0 },
-            { name: "Коврики для минивэна", weight: 15, customs: 2500, qty: 0 },
-            { name: "Коврик багажник", weight: 2, customs: 2500, qty: 0 },
-            { name: "Багажный ковёр + защита бортов", weight: 2.4, customs: 3000, qty: 0 },
-            { name: "Сумка", weight: 3, customs: 2000, qty: 0 },
-            { name: "Органайзер", weight: 8, customs: 1500, qty: 0 },
-            { name: "Чемодан", weight: 5, customs: 1500, qty: 0 },
-            { name: "Ложка длинная без тубуса", weight: 1.5, customs: 1300, qty: 0 },
-            { name: "Ложка длинная с тубусом", weight: 2.5, customs: 300, qty: 0 },
-            { name: "Картина 50х70", weight: 5, customs: 3000, qty: 0 },
-            { name: "Бустер детский", weight: 5, customs: 1200, qty: 0 },
-            { name: "Каска", weight: 1.5, customs: 1500, qty: 0 },
-            { name: "Номерная рамка", weight: 1, customs: 1500, qty: 0 },
-            { name: "Чехол на ключ", weight: 0, customs: 804.35, qty: 0 },
-            { name: "Подушка", weight: 0, customs: 1021.74, qty: 0 },
-            { name: "Багажный ковер-трансформер", weight: 0, customs: 3847.83, qty: 0 },
-            { name: "Защита спинок сидений", weight: 0, customs: 2108.70, qty: 0 }
+            { name: "2д комплект 2 ряда", weight: 6, price: 4283, qty: 0 },
+            { name: "2д комплект 3 ряда", weight: 7, price: 4283, qty: 0 },
+            { name: "3д комплект", weight: 10, price: 4283, qty: 0 },
+            { name: "3д комплект с багажником", weight: 12, price: 4900, qty: 0 },
+            { name: "Коврики для минивэна", weight: 15, price: 5500, qty: 0 },
+            { name: "Коврик багажник", weight: 2, price: 2900, qty: 0 },
+            { name: "Багажный ковёр + защита бортов", weight: 2.4, price: 3480, qty: 0 },
+            { name: "Сумка", weight: 3, price: 2600, qty: 0 },
+            { name: "Органайзер", weight: 8, price: 3100, qty: 0 },
+            { name: "Чемодан", weight: 5, price: 2500, qty: 0 },
+            { name: "Ложка длинная без тубуса", weight: 1.5, price: 1600, qty: 0 },
+            { name: "Ложка длинная с тубусом", weight: 2.5, price: 800, qty: 0 },
+            { name: "Картина 50х70", weight: 5, price: 4000, qty: 0 },
+            { name: "Бустер детский", weight: 5, price: 2200, qty: 0 },
+            { name: "Каска", weight: 1.5, price: 1800, qty: 0 },
+            { name: "Номерная рамка", weight: 1, price: 1700, qty: 0 },
+            { name: "Чехол на ключ", weight: 0, price: 804, qty: 0 },
+            { name: "Подушка", weight: 0, price: 1022, qty: 0 },
+            { name: "Багажный ковер-трансформер", weight: 0, price: 3848, qty: 0 },
+            { name: "Защита спинок сидений", weight: 0, price: 2109, qty: 0 }
         ];
 
-        // Первичный расчет базовой стоимости
-        deliveryItems.forEach(item => {
-            item.price = (item.weight * PRICE_PER_KG) + item.customs;
-        });
+        let editingIdx = -1; // -1 означает добавление новой, >= 0 означает редактирование
 
         const fmt = (n) => new Intl.NumberFormat('ru-RU').format(Math.round(n)) + ' ₽';
         
@@ -249,18 +210,29 @@
             
             deliveryItems.forEach((item, idx) => {
                 let card = document.createElement('div');
-                card.className = 'bg-white p-4 sm:p-5 rounded-[1.5rem] border border-slate-200 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] flex flex-col justify-between transition-all hover:border-blue-400 hover:shadow-[0_8px_25px_-5px_rgba(0,0,0,0.06)]';
+                card.className = 'bg-white p-4 sm:p-5 rounded-[1.5rem] border border-slate-200 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] flex flex-col justify-between transition-all hover:border-blue-400 hover:shadow-[0_8px_25px_-5px_rgba(0,0,0,0.06)] relative group';
                 
-                const weightHtml = item.weight > 0 
-                    ? `<div class="text-slate-400 text-xs mb-1">${item.weight} кг</div>` 
-                    : '';
+                const weightHtml = (item.weight && item.weight > 0) 
+                    ? `<div class="text-slate-400 text-xs">${item.weight} кг</div>` 
+                    : `<div class="text-transparent text-xs select-none">0 кг</div>`; // Держим высоту строки
 
+                // Отрисовка карточки с возможностью редактирования цены прямо в ней
                 card.innerHTML = `
-                    <div class="mb-4">
+                    <button onclick="openItemModal(${idx})" class="absolute top-4 right-4 text-slate-300 hover:text-blue-600 transition-colors p-1 rounded-md hover:bg-blue-50" title="Редактировать позицию">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    </button>
+
+                    <div class="pr-8 mb-3">
                         <div class="font-bold text-slate-800 text-sm sm:text-base leading-snug mb-1">${item.name}</div>
                         ${weightHtml}
-                        <div class="text-slate-600 text-sm font-bold">${fmt(item.price)} / шт.</div>
                     </div>
+                    
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="text-slate-500 text-sm font-medium">Цена:</span>
+                        <input type="number" value="${item.price}" onchange="updateItemPrice(${idx}, this.value)" class="w-24 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-blue-500 font-bold text-slate-800 text-sm transition text-right">
+                        <span class="text-slate-500 text-sm font-bold">₽</span>
+                    </div>
+
                     <div class="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
                         <span class="font-extrabold text-blue-600 text-base">${fmt(item.price * (item.qty > 0 ? item.qty : 1))}</span>
                         <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 p-1 rounded-full shadow-sm">
@@ -272,6 +244,15 @@
                 `;
                 grid.appendChild(card);
             });
+        }
+
+        // Прямое обновление цены из инпута на карточке
+        function updateItemPrice(idx, newValue) {
+            let parsed = parseFloat(newValue);
+            if (isNaN(parsed) || parsed < 0) parsed = 0;
+            deliveryItems[idx].price = parsed;
+            renderItems();
+            updateSummary();
         }
 
         function changeQty(idx, delta) {
@@ -295,14 +276,15 @@
         }
 
         function updateSummary() {
-            let baseTotal = 0;
+            let finalSum = 0;
             let itemsCount = 0;
             const list = document.getElementById('esCartItems');
             list.innerHTML = "";
 
             deliveryItems.forEach((item, idx) => {
                 if (item.qty > 0) {
-                    baseTotal += item.price * item.qty;
+                    let itemTotal = item.price * item.qty;
+                    finalSum += itemTotal;
                     itemsCount += item.qty;
                     
                     let row = document.createElement('div');
@@ -317,34 +299,17 @@
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                             </button>
                         </div>
-                        <div class="text-xs font-semibold text-slate-500 mt-1">${fmt(item.price * item.qty)}</div>
+                        <div class="text-xs font-semibold text-slate-500 mt-1">${fmt(itemTotal)}</div>
                     `;
                     list.appendChild(row);
                 }
             });
 
-            if(itemsCount === 0) list.innerHTML = "<div class='text-center py-8 text-slate-400 font-medium text-sm'>Добавьте позиции</div>";
-
-            let constantSum = itemsCount > 0 ? ORDER_CONSTANT : 0;
-            let subTotal = baseTotal + constantSum;
-            let percentSum = subTotal * DELIVERY_PERCENT;
-            currentCalculatedTotal = subTotal + percentSum;
-
-            document.getElementById('calcBaseSum').innerText = fmt(baseTotal);
-            document.getElementById('calcConstantSum').innerText = '+ ' + fmt(constantSum);
-            document.getElementById('calcPercentSum').innerText = '+ ' + fmt(percentSum);
-
-            // Отрисовка итога (автоматический или ручной)
-            const sumEl = document.getElementById('calcTotalSum');
-            if (manualTotalValue !== null) {
-                sumEl.innerText = fmt(manualTotalValue);
-                sumEl.classList.add('text-indigo-600');
-                document.getElementById('resetTotalBtn').classList.remove('hidden');
-            } else {
-                sumEl.innerText = fmt(currentCalculatedTotal);
-                sumEl.classList.remove('text-indigo-600');
-                document.getElementById('resetTotalBtn').classList.add('hidden');
+            if(itemsCount === 0) {
+                list.innerHTML = "<div class='text-center py-8 text-slate-400 font-medium text-sm'>Добавьте позиции</div>";
             }
+
+            document.getElementById('calcTotalSum').innerText = fmt(finalSum);
 
             const badge = document.getElementById('cart-count-badge');
             if(itemsCount > 0) {
@@ -354,99 +319,75 @@
             }
         }
 
-        // --- ЛОГИКА РУЧНОГО ИТОГА ---
-        function enableManualTotal() {
-            document.getElementById('calcTotalSum').classList.add('hidden');
-            document.getElementById('editTotalBtn').classList.add('hidden');
+        // --- ЛОГИКА ДОБАВЛЕНИЯ / РЕДАКТИРОВАНИЯ ---
+        function openItemModal(idx) {
+            editingIdx = idx;
+            const modal = document.getElementById('itemModal');
+            const title = document.getElementById('modalTitle');
             
-            const input = document.getElementById('manualTotalInput');
-            input.classList.remove('hidden');
-            input.value = manualTotalValue !== null ? manualTotalValue : Math.round(currentCalculatedTotal);
-            input.focus();
-            
-            document.getElementById('resetTotalBtn').classList.remove('hidden');
-        }
-
-        function applyManualTotal() {
-            const input = document.getElementById('manualTotalInput');
-            const val = parseFloat(input.value);
-            
-            if (!isNaN(val) && val >= 0) {
-                manualTotalValue = val;
+            if (idx >= 0) {
+                // Режим редактирования
+                title.innerText = 'Редактировать позицию';
+                document.getElementById('modalItemName').value = deliveryItems[idx].name;
+                document.getElementById('modalItemPrice').value = deliveryItems[idx].price;
+                document.getElementById('modalItemWeight').value = deliveryItems[idx].weight || '';
             } else {
-                manualTotalValue = null;
+                // Режим добавления
+                title.innerText = 'Новая позиция';
+                document.getElementById('modalItemName').value = '';
+                document.getElementById('modalItemPrice').value = '';
+                document.getElementById('modalItemWeight').value = '';
             }
             
-            input.classList.add('hidden');
-            document.getElementById('calcTotalSum').classList.remove('hidden');
-            document.getElementById('editTotalBtn').classList.remove('hidden');
-            
-            updateSummary();
-        }
-
-        function resetManualTotal() {
-            manualTotalValue = null;
-            document.getElementById('manualTotalInput').classList.add('hidden');
-            document.getElementById('calcTotalSum').classList.remove('hidden');
-            document.getElementById('editTotalBtn').classList.remove('hidden');
-            updateSummary();
-        }
-
-        // --- ЛОГИКА ДОБАВЛЕНИЯ ПОЗИЦИЙ ---
-        function openAddItemModal() {
-            document.getElementById('addItemModal').classList.remove('hidden');
+            modal.classList.remove('hidden');
             document.body.classList.add('modal-open');
         }
 
-        function closeAddItemModal() {
-            document.getElementById('addItemModal').classList.add('hidden');
+        function closeItemModal() {
+            document.getElementById('itemModal').classList.add('hidden');
             document.body.classList.remove('modal-open');
-            document.getElementById('newItemName').value = '';
-            document.getElementById('newItemWeight').value = '0';
-            document.getElementById('newItemCustoms').value = '0';
         }
 
-        function addNewItem() {
-            const name = document.getElementById('newItemName').value.trim();
-            const weight = parseFloat(document.getElementById('newItemWeight').value) || 0;
-            const customs = parseFloat(document.getElementById('newItemCustoms').value) || 0;
+        function saveItem() {
+            const name = document.getElementById('modalItemName').value.trim();
+            const price = parseFloat(document.getElementById('modalItemPrice').value) || 0;
+            const weightVal = document.getElementById('modalItemWeight').value;
+            const weight = weightVal === '' ? 0 : parseFloat(weightVal);
             
             if(!name) { 
                 alert('Пожалуйста, введите название позиции'); 
                 return; 
             }
 
-            const newItem = {
-                name: name,
-                weight: weight,
-                customs: customs,
-                qty: 1
-            };
+            if (editingIdx >= 0) {
+                // Обновляем существующую
+                deliveryItems[editingIdx].name = name;
+                deliveryItems[editingIdx].price = price;
+                deliveryItems[editingIdx].weight = weight;
+            } else {
+                // Создаем новую
+                deliveryItems.push({
+                    name: name,
+                    price: price,
+                    weight: weight,
+                    qty: 1
+                });
+                
+                // Раскрываем корзину на мобилках при первом добавлении
+                if (window.innerWidth <= 768) {
+                    const widget = document.getElementById('esCartWidget');
+                    if (!widget.classList.contains('is-open')) toggleMobileCart();
+                }
+            }
             
-            newItem.price = (newItem.weight * PRICE_PER_KG) + newItem.customs;
-            deliveryItems.push(newItem);
-            
-            closeAddItemModal();
+            closeItemModal();
             renderItems();
             updateSummary();
-            
-            // Если на мобилке и корзина была закрыта, открываем её при добавлении
-            if (window.innerWidth <= 768) {
-                const widget = document.getElementById('esCartWidget');
-                if (!widget.classList.contains('is-open')) toggleMobileCart();
-            }
         }
 
         window.clearCalculator = function(e) { 
             if(e) e.stopPropagation(); 
             deliveryItems.forEach(item => item.qty = 0);
-            
-            // Сброс ручного итога при очистке калькулятора
-            manualTotalValue = null;
-            document.getElementById('manualTotalInput').classList.add('hidden');
-            document.getElementById('calcTotalSum').classList.remove('hidden');
-            document.getElementById('editTotalBtn').classList.remove('hidden');
-            
             renderItems(); 
             updateSummary();
             
