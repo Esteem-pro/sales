@@ -164,7 +164,6 @@
         const ORDER_CONSTANT = 500;
         const DELIVERY_PERCENT = 0.15; 
         
-// НОВАЯ СТРУКТУРА ДАННЫХ
         let deliveryItems = [
             { name: "2д комплект 2 ряда", weight: 6, customs: 3083, qty: 0 },
             { name: "2д комплект 3 ряда", weight: 7, customs: 2883, qty: 0 },
@@ -188,25 +187,9 @@
             { name: "Защита спинок сидений", weight: 0, customs: 2108.70, qty: 0 }
         ];
 
-      // Список позиций, на которые НЕ действует скидка 15%
-        const excludedFromDiscount = [
-            "Подушка", 
-            "Чехол на ключ", 
-            "Номерная рамка", 
-            "Каска", 
-            "Ложка длинная без тубуса"
-        ];
-
         // Вычисляем базовую стоимость 1 штуки (Вес * 200 + растаможка)
         deliveryItems.forEach(item => {
-            let basePrice = (item.weight * PRICE_PER_KG) + item.customs;
-            
-            // Если позиции нет в списке исключений, снижаем ее стоимость на 15%
-            if (!excludedFromDiscount.includes(item.name)) {
-                basePrice = basePrice * 0.85;
-            }
-            
-            item.price = basePrice;
+            item.price = (item.weight * PRICE_PER_KG) + item.customs;
         });
 
         const fmt = (n) => new Intl.NumberFormat('ru-RU').format(Math.round(n)) + ' ₽';
@@ -265,14 +248,30 @@
 
         function updateSummary() {
             let baseTotal = 0;
+            let baseTotalEligible = 0;
             let itemsCount = 0;
             const list = document.getElementById('esCartItems');
             list.innerHTML = "";
 
+            // Список исключений
+            const excludedFromDiscount = [
+                "Подушка", 
+                "Чехол на ключ", 
+                "Номерная рамка", 
+                "Каска", 
+                "Ложка длинная без тубуса"
+            ];
+
             deliveryItems.forEach((item, idx) => {
                 if (item.qty > 0) {
-                    baseTotal += item.price * item.qty;
+                    let itemSum = item.price * item.qty;
+                    baseTotal += itemSum;
                     itemsCount += item.qty;
+                    
+                    // Собираем сумму позиций, подлежащих скидке
+                    if (!excludedFromDiscount.includes(item.name)) {
+                        baseTotalEligible += itemSum;
+                    }
                     
                     let row = document.createElement('div');
                     row.className = 'bg-white p-3 rounded-[1rem] border border-slate-100 shadow-[0_2px_10px_-2px_rgba(0,0,0,0.03)] mb-2 relative group';
@@ -294,11 +293,15 @@
 
             if(itemsCount === 0) list.innerHTML = "<div class='text-center py-8 text-slate-400 font-medium text-sm'>Добавьте позиции</div>";
 
-            // Логика расчета по новой формуле
             let constantSum = itemsCount > 0 ? ORDER_CONSTANT : 0;
             let subTotal = baseTotal + constantSum;
             let percentSum = subTotal * DELIVERY_PERCENT;
-            let finalSum = subTotal + percentSum;
+            
+            // Высчитываем невидимую скидку (15% от стоимости подходящих товаров с учетом их комиссии)
+            let discount = baseTotalEligible * (1 + DELIVERY_PERCENT) * 0.15;
+            
+            // Вычитаем скидку из финальной суммы
+            let finalSum = subTotal + percentSum - discount;
 
             document.getElementById('calcBaseSum').innerText = fmt(baseTotal);
             document.getElementById('calcConstantSum').innerText = '+ ' + fmt(constantSum);
