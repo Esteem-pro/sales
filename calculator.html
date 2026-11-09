@@ -3,25 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Калькулятор доставки | Единый портал продавца</title>
-    
-    <!-- Шрифты и библиотеки -->
+    <title>Калькулятор доставки | Единый портал</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- ПРОВЕРКА АВТОРИЗАЦИИ -->
-    <script>
-        if (!localStorage.getItem('sales_dash_user') || !localStorage.getItem('sales_dash_pass')) {
-            window.location.replace('index.html');
-        }
-    </script>
-
     <style>
         body { 
             font-family: 'Inter', sans-serif; 
             background-color: #f1f5f9; 
-            color: #0f172a; 
+            color: #0f172a;
             height: 100dvh;
+            width: 100vw;
+            max-width: 100vw;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -30,28 +22,62 @@
         }
         button, input, select, textarea { touch-action: manipulation; }
 
-        .scroll-area { flex: 1; overflow-y: auto; padding-bottom: calc(env(safe-area-inset-bottom) + 120px); }
+        /* Скрытие стрелочек у числовых инпутов */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] { -moz-appearance: textfield; }
+
+        .glass-header {
+            background: rgba(255, 255, 255, 0.82);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        .bento-card { 
+            background: #ffffff; 
+            padding: 1.25rem; 
+            border-radius: 1.5rem; 
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03); 
+            border: 1px solid #f1f5f9; 
+            display: flex; 
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.25s ease;
+        }
+        .bento-card:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.06);
+            border-color: #e2e8f0;
+        }
+        .scroll-area { 
+            flex: 1; 
+            overflow-y: auto; 
+            overflow-x: hidden; 
+            width: 100%;
+            padding-bottom: calc(env(safe-area-inset-bottom) + 120px); 
+        }
         .scroll-area::-webkit-scrollbar { width: 6px; }
         .scroll-area::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        body.modal-open { overflow: hidden; touch-action: none; }
-
-        /* Динамическое позиционирование липких элементов */
-        #search-container {
-            top: calc(var(--nav-h, 60px) + 16px);
-            transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        .loader { 
+            border: 3px solid #f3f4f6; 
+            border-top: 3px solid #0ea5e9; 
+            border-radius: 50%; 
+            width: 24px; 
+            height: 24px; 
+            animation: spin 1s linear infinite; 
         }
-        body.nav-hidden #search-container {
-            top: 16px;
-        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         @media (min-width: 768px) {
             #esCartWidget {
-                top: calc(var(--nav-h, 60px) + 90px);
+                top: 1.5rem;
                 transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            }
-            body.nav-hidden #esCartWidget {
-                top: 90px;
             }
         }
 
@@ -66,203 +92,559 @@
 </head>
 <body>
 
-    <!-- ОБЩЕПОРТАЛЬНАЯ НАВИГАЦИЯ -->
-    <nav id="portal-nav" class="fixed top-0 left-0 w-full bg-slate-900 text-white px-3 sm:px-4 pb-3 pt-[calc(env(safe-area-inset-top,0px)+12px)] flex justify-between items-center gap-2 z-[60] transition-transform duration-300">
-        <div class="flex gap-1 sm:gap-2 font-semibold text-[13px] sm:text-sm">
-            <a href="index.html" class="px-3 py-2 rounded-lg transition-colors hover:bg-white/10 text-slate-300">Аналитика</a>
-            <a href="catalog.html" class="px-3 py-2 rounded-lg transition-colors hover:bg-white/10 text-slate-300">Прайс</a>
-            <a href="calculator.html" class="px-3 py-2 rounded-lg transition-colors bg-white/20 text-white">Доставка</a>
-            <a href="materials.html" class="px-3 py-2 rounded-lg transition-colors hover:bg-white/10 text-slate-300 whitespace-nowrap">Рабочие материалы</a>
+    <!-- ЭКРАН АВТОРИЗАЦИИ -->
+    <div id="auth-screen" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-cyan-400"></div>
+            <h2 class="text-2xl font-extrabold mt-2 text-slate-900">Вход в систему</h2>
+            <p class="text-slate-500 text-sm mb-6">Единый портал продавца</p>
+            <input type="text" id="username" placeholder="Имя менеджера" class="w-full mb-3 p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+            <input type="password" id="password" placeholder="Пароль" class="w-full mb-6 p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+            <button onclick="login()" class="w-full bg-slate-900 text-white p-3.5 rounded-xl font-bold flex justify-center items-center h-14 transition hover:bg-slate-800">
+                <span id="login-text">Войти</span>
+                <div id="login-loader" class="loader hidden"></div>
+            </button>
+            <p id="auth-error" class="text-rose-500 text-sm mt-4 text-center hidden font-medium"></p>
         </div>
-        <button onclick="logout()" class="p-2 bg-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white rounded-lg transition shrink-0" aria-label="Выйти">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-        </button>
-    </nav>
+    </div>
 
-    <!-- ОБЛАСТЬ ПРОКРУТКИ -->
-    <div class="scroll-area flex flex-col w-full relative">
-
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8 flex flex-col md:flex-row gap-6 items-start w-full">
+    <!-- МОДАЛЬНОЕ ОКНО: ДОБАВИТЬ / РЕДАКТИРОВАТЬ ПОЗИЦИЮ -->
+    <div id="item-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
+        <div class="bg-white p-6 sm:p-8 rounded-[2rem] shadow-2xl max-w-md w-full relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-500 to-teal-400"></div>
+            <div class="flex justify-between items-center mb-5">
+                <h3 id="item-modal-title" class="text-xl font-extrabold text-slate-900">Новая позиция</h3>
+                <button onclick="closeItemModal()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
             
-            <div class="flex-1 w-full">
-                <!-- Липкий заголовок -->
-                <div id="search-container" class="sticky z-40 w-full pointer-events-none mb-4">
-                    <div class="relative shadow-[0_8px_30px_rgb(0,0,0,0.06)] rounded-[1.2rem] bg-white/80 backdrop-blur-xl border border-white/60 px-5 py-4 flex items-center justify-between pointer-events-auto w-full">
-                        <h1 class="font-extrabold text-slate-800 text-lg">Калькулятор доставки</h1>
-                        <button onclick="openItemModal(-1)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition">
-                            + Добавить
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Название позиции *</label>
+                    <input type="text" id="item-name-input" placeholder="Например: 3д комплект с багажником" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Цена (₽) *</label>
+                        <input type="number" id="item-price-input" step="any" min="0" placeholder="4500" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Вес, кг (необяз.)</label>
+                        <input type="number" id="item-weight-input" step="any" min="0" placeholder="Необязательно" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <p id="modal-error" class="text-rose-500 text-xs mt-3 hidden font-semibold"></p>
+
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeItemModal()" class="flex-1 py-3.5 px-4 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition">Отмена</button>
+                <button id="save-btn" onclick="saveCalcItem()" class="flex-1 py-3.5 px-4 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition flex items-center justify-center gap-2">
+                    <span id="save-btn-text">Сохранить</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- УВЕДОМЛЕНИЕ (TOAST) -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl text-sm font-semibold flex items-center gap-2.5 z-[95] translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span id="toast-text">Сохранено</span>
+    </div>
+
+    <!-- ОСНОВНОЙ ЭКРАН (ОТОБРАЖАЕТСЯ ТОЛЬКО ПОСЛЕ АВТОРИЗАЦИИ) -->
+    <div id="dashboard-screen" class="hidden h-full flex flex-col w-full relative overflow-x-hidden">
+        
+        <!-- ОБЩЕПОРТАЛЬНАЯ НАВИГАЦИЯ -->
+        <nav id="portal-nav" class="fixed top-0 left-0 w-full bg-slate-900 text-white px-3 sm:px-4 pb-3 pt-[calc(env(safe-area-inset-top,0px)+12px)] flex justify-between items-center gap-2 z-[60] transition-transform duration-300">
+            <div class="flex gap-1 sm:gap-2 font-semibold text-[13px] sm:text-sm overflow-x-auto no-scrollbar">
+                <a href="index.html" class="px-3 py-2 rounded-lg transition-colors hover:bg-white/10 text-slate-300 whitespace-nowrap">Аналитика</a>
+                <a href="catalog.html" class="px-3 py-2 rounded-lg transition-colors hover:bg-white/10 text-slate-300 whitespace-nowrap">Прайс</a>
+                <a href="calculator.html" class="px-3 py-2 rounded-lg transition-colors bg-white/20 text-white whitespace-nowrap">Доставка</a>
+                <a href="materials.html" class="px-3 py-2 rounded-lg transition-colors hover:bg-white/10 text-slate-300 whitespace-nowrap">Рабочие материалы</a>
+            </div>
+            <button onclick="logout()" class="p-2 bg-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white rounded-lg transition shrink-0" aria-label="Выйти">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+            </button>
+        </nav>
+
+        <!-- ВНУТРЕННЯЯ ШАПКА -->
+        <header id="main-header" class="glass-header fixed left-0 w-full z-40 px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-transform duration-300" style="top: var(--nav-height, 60px);">
+            <div>
+                <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 flex flex-wrap items-center gap-2">
+                    <span>Калькулятор доставки</span>
+                    <span id="items-counter" class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-lg">0 позиций</span>
+                    <span id="sync-indicator" class="hidden text-[10px] font-bold text-slate-500 bg-slate-200/60 px-2 py-1 rounded-lg flex items-center gap-1.5 uppercase tracking-wider">
+                        <div class="w-3 h-3 border-2 border-slate-400 border-t-blue-600 rounded-full animate-spin"></div>
+                        Синхронизация
+                    </span>
+                </h1>
+                <p class="text-xs text-slate-500 font-medium mt-0.5">Нажмите на цену в карточке для быстрого изменения стоимости</p>
+            </div>
+
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <div class="relative flex-1 sm:w-64">
+                    <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="text" id="search-input" oninput="renderItems()" placeholder="Поиск по позициям..." class="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm">
+                </div>
+                <button onclick="openAddModal()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shrink-0 shadow-sm transition">
+                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                    <span>Добавить</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- ОСНОВНАЯ ОБЛАСТЬ КОНТЕНТА -->
+        <main class="scroll-area w-full">
+            <div class="max-w-7xl mx-auto p-4 sm:p-6 flex flex-col md:flex-row gap-6 items-start w-full">
+                
+                <!-- ЛЕВАЯ КОЛОНКА: ИНФО И СЕТКА КАРТОЧЕК -->
+                <div class="flex-1 w-full min-w-0">
+                    <!-- ИНФОРМАЦИОННАЯ ПЛАШКА СДЭК -->
+                    <div class="mb-5 bg-indigo-50/80 border border-indigo-100 text-indigo-800 text-sm p-4 rounded-[1.25rem] shadow-sm flex items-start gap-3">
+                        <svg class="w-5 h-5 shrink-0 text-indigo-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <p class="leading-relaxed font-medium text-xs sm:text-sm">Сумма доставки из Москвы до получателя (курьерская по Москве / авиа курьер в другой город) рассчитывается в СДЭК и оплачивается в компанию СДЭК получателем при получении посылки.</p>
+                    </div>
+
+                    <!-- СЕТКА КАРТОЧЕК -->
+                    <div id="calcGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+                    </div>
+
+                    <!-- ПУСТОЕ СОСТОЯНИЕ -->
+                    <div id="empty-state" class="hidden bento-card items-center justify-center text-center py-14 max-w-lg mx-auto mt-4">
+                        <div class="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 mb-4">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                        </div>
+                        <h3 class="text-lg font-extrabold text-slate-900">Позиции не найдены</h3>
+                        <p class="text-sm text-slate-500 mt-1 max-w-xs">Ничего не подошло под поисковый запрос или список позиций пуст.</p>
+                        <button onclick="openAddModal()" class="mt-5 px-5 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition">
+                            + Добавить позицию
                         </button>
                     </div>
                 </div>
 
-                <!-- ИНФОРМАЦИОННАЯ ПЛАШКА -->
-                <div class="mb-6 bg-indigo-50/80 border border-indigo-100 text-indigo-800 text-sm p-4 rounded-[1.2rem] shadow-sm flex items-start gap-3">
-                    <svg class="w-6 h-6 shrink-0 text-indigo-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <p class="leading-relaxed font-medium">Сумма доставки из Москвы до получателя рассчитывается и оплачивается в компанию СДЭК получателем при получении посылки.</p>
-                </div>
-
-                <div id="calcGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
-                    <!-- Карточки генерируются через JS -->
-                </div>
-            </div>
-
-            <!-- ИТОГИ (ОСТРОВОК) -->
-            <div id="esCartWidget" class="mobile-cart-sheet md:transform-none fixed md:sticky bottom-4 inset-x-0 md:bottom-auto z-50 md:z-10 w-full md:w-80 lg:w-96 bg-transparent flex flex-col mx-auto px-4 sm:px-6 md:px-0 md:max-h-[calc(100vh-130px)]">
-                
-                <div class="bg-white rounded-[1.2rem] md:rounded-[1.5rem] border border-slate-200/80 shadow-[0_12px_40px_-10px_rgba(0,0,0,0.15)] md:shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] flex flex-col flex-1 min-h-0 overflow-hidden">
+                <!-- ПРАВАЯ КОЛОНКА: ИТОГИ (ОСТРОВОК) -->
+                <div id="esCartWidget" class="mobile-cart-sheet md:transform-none fixed md:sticky bottom-4 inset-x-0 md:bottom-auto z-50 md:z-10 w-full md:w-80 lg:w-96 bg-transparent flex flex-col mx-auto px-4 sm:px-6 md:px-0 md:max-h-[calc(100vh-140px)] shrink-0">
                     
-                    <div class="cart-header-border p-4 sm:p-5 border-b border-slate-100 flex justify-between items-center bg-slate-900 md:bg-white text-white md:text-slate-900 cursor-pointer md:cursor-default transition-colors shrink-0 touch-none md:touch-auto" onclick="toggleMobileCart()">
-                        <div class="flex items-center gap-2">
-                            <h2 class="font-extrabold text-lg">Расчет стоимости</h2>
-                            <span id="cart-count-badge" class="bg-blue-500 md:bg-slate-100 md:text-slate-600 text-white text-xs font-bold px-2 py-0.5 rounded-full hidden">0</span>
-                        </div>
-                        <svg id="mobile-cart-arrow" class="w-6 h-6 md:hidden transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
-                    </div>
-
-                    <div class="mobile-cart-content flex flex-col flex-1 overflow-hidden min-h-0">
-                        <div id="esCartItems" class="flex-1 overflow-y-auto overscroll-y-contain p-4 sm:p-5 bg-[#f1f5f9]/50">
-                            <div class="text-center py-8 text-slate-400 font-medium text-sm">Добавьте позиции</div>
-                        </div>
-
-                        <div class="p-4 sm:p-5 bg-white border-t border-slate-100 shrink-0">
-                            <div class="flex justify-between items-end mb-4">
-                                <span class="text-slate-500 font-bold mb-1 shrink-0">Итого к оплате:</span>
-                                <span id="calcTotalSum" class="text-2xl font-extrabold text-slate-900 tracking-tight truncate">0 ₽</span>
-                            </div>
-                            
-                            <button class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold p-3 rounded-[1rem] transition-colors text-sm" onclick="clearCalculator(event)">
-                                Сбросить расчет
-                            </button>
-                        </div>
+                    <div class="bg-white rounded-[1.25rem] md:rounded-[1.5rem] border border-slate-200/80 shadow-[0_12px_40px_-10px_rgba(0,0,0,0.15)] md:shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] flex flex-col flex-1 min-h-0 overflow-hidden">
                         
+                        <div class="cart-header-border p-4 sm:p-5 border-b border-slate-100 flex justify-between items-center bg-slate-900 md:bg-white text-white md:text-slate-900 cursor-pointer md:cursor-default transition-colors shrink-0 touch-none md:touch-auto" onclick="toggleMobileCart()">
+                            <div class="flex items-center gap-2">
+                                <h2 class="font-extrabold text-lg">Расчет стоимости</h2>
+                                <span id="cart-count-badge" class="bg-emerald-500 md:bg-emerald-50 md:text-emerald-700 md:border md:border-emerald-200 text-white text-xs font-bold px-2.5 py-0.5 rounded-full hidden">0</span>
+                            </div>
+                            <svg id="mobile-cart-arrow" class="w-6 h-6 md:hidden transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                        </div>
+
+                        <div class="mobile-cart-content flex flex-col flex-1 overflow-hidden min-h-0">
+                            <div id="esCartItems" class="flex-1 overflow-y-auto overscroll-y-contain p-4 sm:p-5 bg-[#f1f5f9]/50">
+                                <div class="text-center py-8 text-slate-400 font-medium text-sm">Добавьте позиции</div>
+                            </div>
+
+                            <div class="p-4 sm:p-5 bg-white border-t border-slate-100 shrink-0">
+                                <div class="space-y-2 mb-4 border-b border-dashed border-slate-200 pb-4">
+                                    <div class="flex justify-between text-sm font-semibold text-slate-500">
+                                        <span>Выбрано позиций:</span>
+                                        <span id="calcTotalQty" class="text-slate-800 font-bold">0 шт.</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm font-semibold text-slate-500">
+                                        <span>Общий вес:</span>
+                                        <span id="calcTotalWeight" class="text-slate-800 font-bold">0 кг</span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-end mb-4">
+                                    <span class="text-slate-500 font-bold mb-1">Итого к оплате:</span>
+                                    <span id="calcTotalSum" class="text-2xl font-extrabold text-slate-900 tracking-tight">0 ₽</span>
+                                </div>
+                                <button class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold p-3 rounded-xl transition-colors text-sm" onclick="clearCalculator(event)">
+                                    Сбросить расчет
+                                </button>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
+
             </div>
-        </div>
+        </main>
     </div>
 
-    <!-- УНИВЕРСАЛЬНАЯ МОДАЛКА (ДОБАВЛЕНИЕ / РЕДАКТИРОВАНИЕ) -->
-    <div id="itemModal" class="hidden fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl relative">
-            <h3 id="modalTitle" class="text-xl font-bold mb-4">Новая позиция</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-1">Название</label>
-                    <input type="text" id="modalItemName" class="w-full border border-slate-200 rounded-lg p-2.5 outline-none focus:border-blue-500 font-medium" placeholder="Например: Спец. коврик">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-1">Цена (₽)</label>
-                        <input type="number" id="modalItemPrice" class="w-full border border-slate-200 rounded-lg p-2.5 outline-none focus:border-blue-500 font-medium" value="0">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-1">Вес, кг <span class="text-slate-400 font-normal">(необяз.)</span></label>
-                        <input type="number" id="modalItemWeight" class="w-full border border-slate-200 rounded-lg p-2.5 outline-none focus:border-blue-500 font-medium" step="0.1" placeholder="0">
-                    </div>
-                </div>
-            </div>
-            <div class="flex gap-3 mt-6">
-                <button onclick="closeItemModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition">Отмена</button>
-                <button onclick="saveItem()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition">Сохранить</button>
-            </div>
-        </div>
-    </div>
+    <!-- FIREBASE SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
     <script>
+        // ==========================================
+        // 1. КОНФИГУРАЦИЯ FIREBASE И GAS
+        // ==========================================
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzK-6RUJcQYZykSwtZWq5CawXYcrL5MGWGddzvq3HOKsFXY3Vxl5C39htR0qVhRBCzC/exec';
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyC6buLJVBEYuMk87fuz8Rzy86N4WEqrSq0",
+            authDomain: "esteem---sales---materials.firebaseapp.com",
+            databaseURL: "https://esteem---sales---materials-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "esteem---sales---materials",
+            storageBucket: "esteem---sales---materials.firebasestorage.app",
+            messagingSenderId: "371423925545",
+            appId: "1:371423925545:web:b480f995453bc84d631338"
+        };
+
+        let db = null;
+        let calcRef = null;
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            db = firebase.database();
+            calcRef = db.ref('portal_calculator/items');
+        } catch (err) {
+            console.error('Ошибка инициализации Firebase:', err);
+        }
+
+        const CACHE_CALC_KEY = 'sales_portal_calculator_items_v2';
+
+        // Дефолтные позиции (используются для первичного заполнения базы)
+        const DEFAULT_ITEMS = [
+            { id: "item_1", name: "2д комплект 2 ряда", weight: 6, price: 4283, order: 1 },
+            { id: "item_2", name: "2д комплект 3 ряда", weight: 7, price: 4283, order: 2 },
+            { id: "item_3", name: "3д комплект", weight: 10, price: 4283, order: 3 },
+            { id: "item_4", name: "3д комплект с багажником", weight: 12, price: 4900, order: 4 },
+            { id: "item_5", name: "Коврики для минивэна", weight: 15, price: 5500, order: 5 },
+            { id: "item_6", name: "Коврик багажник", weight: 2, price: 2900, order: 6 },
+            { id: "item_7", name: "Багажный ковёр + защита бортов", weight: 2.4, price: 3480, order: 7 },
+            { id: "item_8", name: "Сумка", weight: 3, price: 2600, order: 8 },
+            { id: "item_9", name: "Органайзер", weight: 8, price: 3100, order: 9 },
+            { id: "item_10", name: "Чемодан", weight: 5, price: 2500, order: 10 },
+            { id: "item_11", name: "Ложка длинная без тубуса", weight: 1.5, price: 1600, order: 11 },
+            { id: "item_12", name: "Ложка длинная с тубусом", weight: 2.5, price: 800, order: 12 },
+            { id: "item_13", name: "Картина 50х70", weight: 5, price: 4000, order: 13 },
+            { id: "item_14", name: "Бустер детский", weight: 5, price: 2200, order: 14 },
+            { id: "item_15", name: "Каска", weight: 1.5, price: 1800, order: 15 },
+            { id: "item_16", name: "Номерная рамка", weight: 1, price: 1700, order: 16 },
+            { id: "item_17", name: "Чехол на ключ", weight: null, price: 804, order: 17 },
+            { id: "item_18", name: "Подушка", weight: null, price: 1022, order: 18 },
+            { id: "item_19", name: "Багажный ковер-трансформер", weight: null, price: 3848, order: 19 },
+            { id: "item_20", name: "Защита спинок сидений", weight: null, price: 2109, order: 20 }
+        ];
+
+        let deliveryItems = [];
+        let quantities = {}; // Локальное состояние выбранных количеств { [id]: qty }
+        let editingItemId = null;
+        let realtimeSubscribed = false;
+
+        const fmt = (n) => new Intl.NumberFormat('ru-RU').format(Math.round(Number(n) || 0)) + ' ₽';
+
+        // ==========================================
+        // 2. АВТОРИЗАЦИЯ И СТАРТ СТРАНИЦЫ
+        // ==========================================
+        window.onload = () => {
+            try {
+                const cached = localStorage.getItem(CACHE_CALC_KEY);
+                if (cached) {
+                    deliveryItems = JSON.parse(cached);
+                } else {
+                    deliveryItems = [...DEFAULT_ITEMS];
+                }
+            } catch (e) {
+                deliveryItems = [...DEFAULT_ITEMS];
+            }
+
+            const sName = localStorage.getItem('sales_dash_user');
+            const sPass = localStorage.getItem('sales_dash_pass');
+
+            if (sName && sPass) {
+                document.getElementById('username').value = sName;
+                document.getElementById('password').value = sPass;
+                unlockPortal();
+                verifyAuthSilently(sName, sPass);
+            }
+        };
+
+        function unlockPortal() {
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('dashboard-screen').classList.remove('hidden');
+            setTimeout(() => { if (window.initScrollLayout) window.initScrollLayout(); }, 50);
+            
+            renderItems();
+            updateSummary();
+            subscribeToRealtimeDB();
+        }
+
+        async function verifyAuthSilently(name, pass) {
+            try {
+                const date = new Date();
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ name: name, pass: pass, month: date.getMonth() + 1, year: date.getFullYear() })
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    localStorage.setItem('sales_dash_data', JSON.stringify(result.data));
+                } else {
+                    logout();
+                }
+            } catch (e) {
+                console.warn('Фоновая проверка авторизации пропущена:', e);
+            }
+        }
+
+        async function login() {
+            const name = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value.trim();
+            const errorEl = document.getElementById('auth-error');
+            const btnText = document.getElementById('login-text');
+            const btnLoader = document.getElementById('login-loader');
+
+            if (!name || !pass) {
+                errorEl.innerText = 'Введите имя и пароль';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            errorEl.classList.add('hidden');
+            btnText.classList.add('hidden');
+            btnLoader.classList.remove('hidden');
+
+            try {
+                const date = new Date();
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ name: name, pass: pass, month: date.getMonth() + 1, year: date.getFullYear() })
+                });
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    localStorage.setItem('sales_dash_user', name);
+                    localStorage.setItem('sales_dash_pass', pass);
+                    localStorage.setItem('sales_dash_data', JSON.stringify(result.data));
+                    unlockPortal();
+                } else {
+                    throw new Error(result.message || 'Неверное имя или пароль');
+                }
+            } catch (error) {
+                errorEl.innerText = error.message;
+                errorEl.classList.remove('hidden');
+            } finally {
+                btnText.classList.remove('hidden');
+                btnLoader.classList.add('hidden');
+            }
+        }
+
         function logout() {
             localStorage.removeItem('sales_dash_user');
             localStorage.removeItem('sales_dash_pass');
             localStorage.removeItem('sales_dash_data');
-            window.location.href = 'index.html';
+            if (calcRef && realtimeSubscribed) {
+                calcRef.off();
+                realtimeSubscribed = false;
+            }
+            document.getElementById('dashboard-screen').classList.add('hidden');
+            document.getElementById('auth-screen').classList.remove('hidden');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
         }
 
-        // Обновленная структура данных (пересчитанные базовые цены)
-        let deliveryItems = [
-            { name: "2д комплект 2 ряда", weight: 6, price: 4283, qty: 0 },
-            { name: "2д комплект 3 ряда", weight: 7, price: 4283, qty: 0 },
-            { name: "3д комплект", weight: 10, price: 4283, qty: 0 },
-            { name: "3д комплект с багажником", weight: 12, price: 4900, qty: 0 },
-            { name: "Коврики для минивэна", weight: 15, price: 5500, qty: 0 },
-            { name: "Коврик багажник", weight: 2, price: 2900, qty: 0 },
-            { name: "Багажный ковёр + защита бортов", weight: 2.4, price: 3480, qty: 0 },
-            { name: "Сумка", weight: 3, price: 2600, qty: 0 },
-            { name: "Органайзер", weight: 8, price: 3100, qty: 0 },
-            { name: "Чемодан", weight: 5, price: 2500, qty: 0 },
-            { name: "Ложка длинная без тубуса", weight: 1.5, price: 1600, qty: 0 },
-            { name: "Ложка длинная с тубусом", weight: 2.5, price: 800, qty: 0 },
-            { name: "Картина 50х70", weight: 5, price: 4000, qty: 0 },
-            { name: "Бустер детский", weight: 5, price: 2200, qty: 0 },
-            { name: "Каска", weight: 1.5, price: 1800, qty: 0 },
-            { name: "Номерная рамка", weight: 1, price: 1700, qty: 0 },
-            { name: "Чехол на ключ", weight: 0, price: 804, qty: 0 },
-            { name: "Подушка", weight: 0, price: 1022, qty: 0 },
-            { name: "Багажный ковер-трансформер", weight: 0, price: 3848, qty: 0 },
-            { name: "Защита спинок сидений", weight: 0, price: 2109, qty: 0 }
-        ];
+        // ==========================================
+        // 3. СИНХРОНИЗАЦИЯ С FIREBASE REALTIME DATABASE
+        // ==========================================
+        function setSyncIndicator(isVisible) {
+            const el = document.getElementById('sync-indicator');
+            if (!el) return;
+            if (isVisible) el.classList.remove('hidden');
+            else el.classList.add('hidden');
+        }
 
-        let editingIdx = -1; // -1 означает добавление новой, >= 0 означает редактирование
+        function subscribeToRealtimeDB() {
+            if (!calcRef || realtimeSubscribed) return;
+            realtimeSubscribed = true;
+            setSyncIndicator(true);
 
-        const fmt = (n) => new Intl.NumberFormat('ru-RU').format(Math.round(n)) + ' ₽';
-        
-        function renderItems() {
-            const grid = document.getElementById('calcGrid');
-            grid.innerHTML = '';
-            
-            deliveryItems.forEach((item, idx) => {
-                let card = document.createElement('div');
-                card.className = 'bg-white p-4 sm:p-5 rounded-[1.5rem] border border-slate-200 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)] flex flex-col justify-between transition-all hover:border-blue-400 hover:shadow-[0_8px_25px_-5px_rgba(0,0,0,0.06)] relative group';
-                
-                const weightHtml = (item.weight && item.weight > 0) 
-                    ? `<div class="text-slate-400 text-xs">${item.weight} кг</div>` 
-                    : `<div class="text-transparent text-xs select-none">0 кг</div>`; // Держим высоту строки
+            calcRef.on('value', async (snapshot) => {
+                const val = snapshot.val();
 
-                // Отрисовка карточки с возможностью редактирования цены прямо в ней
-                card.innerHTML = `
-                    <button onclick="openItemModal(${idx})" class="absolute top-4 right-4 text-slate-300 hover:text-blue-600 transition-colors p-1 rounded-md hover:bg-blue-50" title="Редактировать позицию">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                    </button>
+                // Если в базе еще нет данных — загружаем стартовый набор
+                if (!val) {
+                    const seedObj = {};
+                    DEFAULT_ITEMS.forEach(item => { seedObj[item.id] = item; });
+                    try {
+                        await calcRef.set(seedObj);
+                    } catch (e) {
+                        console.error('Ошибка первичной инициализации БД:', e);
+                    }
+                    setSyncIndicator(false);
+                    return;
+                }
 
-                    <div class="pr-8 mb-3">
-                        <div class="font-bold text-slate-800 text-sm sm:text-base leading-snug mb-1">${item.name}</div>
-                        ${weightHtml}
-                    </div>
-                    
-                    <div class="flex items-center gap-2 mb-4">
-                        <span class="text-slate-500 text-sm font-medium">Цена:</span>
-                        <input type="number" value="${item.price}" onchange="updateItemPrice(${idx}, this.value)" class="w-24 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-blue-500 font-bold text-slate-800 text-sm transition text-right">
-                        <span class="text-slate-500 text-sm font-bold">₽</span>
-                    </div>
+                deliveryItems = Object.values(val).sort((a, b) => (a.order || 0) - (b.order || 0));
+                localStorage.setItem(CACHE_CALC_KEY, JSON.stringify(deliveryItems));
 
-                    <div class="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
-                        <span class="font-extrabold text-blue-600 text-base">${fmt(item.price * (item.qty > 0 ? item.qty : 1))}</span>
-                        <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 p-1 rounded-full shadow-sm">
-                            <button class="w-8 h-8 flex items-center justify-center bg-white hover:bg-slate-100 rounded-full text-slate-600 font-bold transition-colors shadow-sm text-lg" onclick="changeQty(${idx}, -1)">-</button>
-                            <span class="w-6 text-center font-bold ${item.qty > 0 ? 'text-slate-900' : 'text-slate-400'} text-sm">${item.qty}</span>
-                            <button class="w-8 h-8 flex items-center justify-center bg-white hover:bg-slate-100 rounded-full text-slate-600 font-bold transition-colors shadow-sm text-lg" onclick="changeQty(${idx}, 1)">+</button>
-                        </div>
-                    </div>
-                `;
-                grid.appendChild(card);
+                renderItems();
+                updateSummary();
+                setSyncIndicator(false);
+            }, (error) => {
+                console.error('Ошибка чтения Realtime Database:', error);
+                setSyncIndicator(false);
+                showToast('Работа в автономном режиме');
             });
         }
 
-        // Прямое обновление цены из инпута на карточке
-        function updateItemPrice(idx, newValue) {
-            let parsed = parseFloat(newValue);
-            if (isNaN(parsed) || parsed < 0) parsed = 0;
-            deliveryItems[idx].price = parsed;
-            renderItems();
-            updateSummary();
+        // ==========================================
+        // 4. ОТРИСОВКА КАРТОЧЕК И ПРЯМОЕ РЕДАКТИРОВАНИЕ ЦЕНЫ
+        // ==========================================
+        function updateCounterBadge() {
+            const counter = document.getElementById('items-counter');
+            if (!counter) return;
+            const count = deliveryItems.length;
+            const mod10 = count % 10;
+            const mod100 = count % 100;
+            let word = 'позиций';
+            if (mod10 === 1 && mod100 !== 11) word = 'позиция';
+            else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) word = 'позиции';
+            counter.innerText = `${count} ${word}`;
         }
 
-        function changeQty(idx, delta) {
-            let item = deliveryItems[idx];
-            let newQty = item.qty + delta;
-            if(newQty < 0) newQty = 0;
-            
-            let totalQtyBefore = deliveryItems.reduce((sum, i) => sum + i.qty, 0);
-            item.qty = newQty;
-            let totalQtyAfter = deliveryItems.reduce((sum, i) => sum + i.qty, 0);
+        function renderItems() {
+            const grid = document.getElementById('calcGrid');
+            const emptyState = document.getElementById('empty-state');
+            const query = (document.getElementById('search-input')?.value || '').trim().toLowerCase();
+
+            updateCounterBadge();
+            grid.innerHTML = '';
+
+            const filtered = deliveryItems.filter(item => {
+                return !query || (item.name && item.name.toLowerCase().includes(query));
+            });
+
+            if (filtered.length === 0) {
+                grid.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            grid.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+
+            const fragment = document.createDocumentFragment();
+
+            filtered.forEach(item => {
+                const qty = quantities[item.id] || 0;
+                const hasWeight = item.weight !== null && item.weight !== undefined && item.weight !== '' && Number(item.weight) > 0;
+                const isSelected = qty > 0;
+
+                const card = document.createElement('div');
+                card.className = `bento-card group ${isSelected ? 'ring-2 ring-blue-500/80 border-blue-200' : ''}`;
+
+                const weightBadge = hasWeight
+                    ? `<span class="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-200/80 px-2.5 py-0.5 rounded-lg">
+                           <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
+                           ${escapeHtml(item.weight)} кг
+                       </span>`
+                    : `<span class="inline-flex items-center text-[11px] font-semibold text-slate-400 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-lg">Без веса</span>`;
+
+                card.innerHTML = `
+                    <div>
+                        <!-- Верхняя панель: вес + кнопки управления -->
+                        <div class="flex items-center justify-between gap-2 mb-2.5">
+                            ${weightBadge}
+                            <div class="flex items-center gap-0.5 shrink-0">
+                                <button onclick="openEditModal('${escapeHtml(item.id)}')" title="Редактировать карточку" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                </button>
+                                <button onclick="deleteCalcItem('${escapeHtml(item.id)}')" title="Удалить позицию" class="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Название позиции -->
+                        <h3 class="font-extrabold text-slate-900 text-sm sm:text-base leading-snug mb-3 group-hover:text-blue-600 transition-colors">
+                            ${escapeHtml(item.name)}
+                        </h3>
+
+                        <!-- Поле быстрого изменения цены прямо в карточке -->
+                        <div class="bg-slate-50/90 border border-slate-200/80 rounded-xl px-3 py-2 mb-4 flex items-center justify-between gap-2 focus-within:ring-2 focus-within:ring-blue-500 focus-within:bg-white focus-within:border-blue-400 transition">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Цена за шт.</span>
+                            <div class="flex items-center gap-1">
+                                <input 
+                                    type="number" 
+                                    step="any" 
+                                    min="0"
+                                    value="${Math.round(Number(item.price) || 0)}" 
+                                    onkeydown="if(event.key==='Enter'){this.blur();}"
+                                    onchange="updateInlinePrice('${escapeHtml(item.id)}', this.value)"
+                                    class="w-24 text-right bg-transparent font-extrabold text-slate-900 text-sm outline-none"
+                                    title="Нажмите, чтобы изменить стоимость"
+                                >
+                                <span class="text-xs font-bold text-slate-400">₽</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Нижняя панель: Итог по карточке + счетчик количества -->
+                    <div class="flex items-center justify-between mt-auto pt-3 border-t border-slate-100">
+                        <div>
+                            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Сумма</div>
+                            <span class="font-extrabold ${isSelected ? 'text-blue-600' : 'text-slate-700'} text-base">
+                                ${fmt(item.price * (qty > 0 ? qty : 1))}
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 p-1 rounded-full shadow-sm">
+                            <button class="w-8 h-8 flex items-center justify-center bg-white hover:bg-slate-100 rounded-full text-slate-600 font-bold transition-colors shadow-sm text-lg" onclick="changeQty('${escapeHtml(item.id)}', -1)">-</button>
+                            <span class="w-6 text-center font-extrabold ${isSelected ? 'text-blue-600' : 'text-slate-400'} text-sm">${qty}</span>
+                            <button class="w-8 h-8 flex items-center justify-center bg-slate-900 hover:bg-blue-600 rounded-full text-white font-bold transition-colors shadow-sm text-lg" onclick="changeQty('${escapeHtml(item.id)}', 1)">+</button>
+                        </div>
+                    </div>
+                `;
+                fragment.appendChild(card);
+            });
+
+            grid.appendChild(fragment);
+        }
+
+        async function updateInlinePrice(id, rawValue) {
+            const item = deliveryItems.find(i => i.id === id);
+            if (!item) return;
+
+            const newPrice = Math.max(0, Number(rawValue) || 0);
+            if (newPrice === Number(item.price)) return;
+
+            item.price = newPrice;
+            localStorage.setItem(CACHE_CALC_KEY, JSON.stringify(deliveryItems));
+            renderItems();
+            updateSummary();
+
+            if (calcRef) {
+                try {
+                    setSyncIndicator(true);
+                    await calcRef.child(id).update({ price: newPrice });
+                    showToast('Стоимость обновлена');
+                } catch (e) {
+                    console.error('Ошибка сохранения цены:', e);
+                    showToast('Сохранено локально');
+                } finally {
+                    setSyncIndicator(false);
+                }
+            }
+        }
+
+        // ==========================================
+        // 5. РАСЧЕТ КОРЗИНЫ (ТОЛЬКО СУММА И КГ)
+        // ==========================================
+        function changeQty(id, delta) {
+            const currentQty = quantities[id] || 0;
+            const newQty = Math.max(0, currentQty + delta);
+
+            const totalQtyBefore = Object.values(quantities).reduce((s, q) => s + q, 0);
+            if (newQty === 0) {
+                delete quantities[id];
+            } else {
+                quantities[id] = newQty;
+            }
+            const totalQtyAfter = Object.values(quantities).reduce((s, q) => s + q, 0);
 
             if (totalQtyBefore === 0 && totalQtyAfter === 1 && window.innerWidth <= 768) {
                 const widget = document.getElementById('esCartWidget');
@@ -276,160 +658,263 @@
         }
 
         function updateSummary() {
-            let finalSum = 0;
+            let totalSum = 0;
+            let totalWeight = 0;
             let itemsCount = 0;
-            const list = document.getElementById('esCartItems');
-            list.innerHTML = "";
 
-            deliveryItems.forEach((item, idx) => {
-                if (item.qty > 0) {
-                    let itemTotal = item.price * item.qty;
-                    finalSum += itemTotal;
-                    itemsCount += item.qty;
-                    
-                    let row = document.createElement('div');
-                    row.className = 'bg-white p-3 rounded-[1rem] border border-slate-100 shadow-[0_2px_10px_-2px_rgba(0,0,0,0.03)] mb-2 relative group';
+            const list = document.getElementById('esCartItems');
+            list.innerHTML = '';
+
+            deliveryItems.forEach(item => {
+                const qty = quantities[item.id] || 0;
+                if (qty > 0) {
+                    const rowSum = (Number(item.price) || 0) * qty;
+                    const itemWeight = Number(item.weight) || 0;
+                    const rowWeight = itemWeight * qty;
+
+                    totalSum += rowSum;
+                    totalWeight += rowWeight;
+                    itemsCount += qty;
+
+                    const weightMeta = itemWeight > 0 ? ` • ${ +(rowWeight.toFixed(2)) } кг` : '';
+
+                    const row = document.createElement('div');
+                    row.className = 'bg-white p-3 rounded-xl border border-slate-200/70 shadow-sm mb-2 relative group';
                     row.innerHTML = `
-                        <div class="flex justify-between items-center">
-                            <div class="font-bold text-slate-800 text-sm leading-tight pr-4">
-                                ${item.name} 
-                                <span class="text-blue-500 ml-1 text-xs px-1.5 py-0.5 bg-blue-50 rounded-md">x${item.qty}</span>
+                        <div class="flex justify-between items-start gap-2">
+                            <div class="font-bold text-slate-800 text-xs sm:text-sm leading-snug">
+                                ${escapeHtml(item.name)}
+                                <span class="text-blue-600 font-extrabold ml-1 text-xs px-1.5 py-0.5 bg-blue-50 rounded-md">x${qty}</span>
                             </div>
-                            <button class="text-slate-300 hover:text-rose-500 transition-colors p-1" onclick="changeQty(${idx}, -${item.qty})">
+                            <button class="text-slate-300 hover:text-rose-500 transition-colors p-0.5 shrink-0" onclick="changeQty('${escapeHtml(item.id)}', -${qty})" title="Убрать из расчета">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                             </button>
                         </div>
-                        <div class="text-xs font-semibold text-slate-500 mt-1">${fmt(itemTotal)}</div>
+                        <div class="text-xs font-bold text-slate-500 mt-1">${fmt(rowSum)}${weightMeta}</div>
                     `;
                     list.appendChild(row);
                 }
             });
 
-            if(itemsCount === 0) {
+            if (itemsCount === 0) {
                 list.innerHTML = "<div class='text-center py-8 text-slate-400 font-medium text-sm'>Добавьте позиции</div>";
             }
 
-            document.getElementById('calcTotalSum').innerText = fmt(finalSum);
+            document.getElementById('calcTotalQty').innerText = `${itemsCount} шт.`;
+            document.getElementById('calcTotalWeight').innerText = `${ +(totalWeight.toFixed(2)) } кг`;
+            document.getElementById('calcTotalSum').innerText = fmt(totalSum);
 
             const badge = document.getElementById('cart-count-badge');
-            if(itemsCount > 0) {
-                badge.innerText = itemsCount; badge.classList.remove('hidden');
+            if (itemsCount > 0) {
+                badge.innerText = itemsCount;
+                badge.classList.remove('hidden');
             } else {
                 badge.classList.add('hidden');
             }
         }
 
-        // --- ЛОГИКА ДОБАВЛЕНИЯ / РЕДАКТИРОВАНИЯ ---
-        function openItemModal(idx) {
-            editingIdx = idx;
-            const modal = document.getElementById('itemModal');
-            const title = document.getElementById('modalTitle');
-            
-            if (idx >= 0) {
-                // Режим редактирования
-                title.innerText = 'Редактировать позицию';
-                document.getElementById('modalItemName').value = deliveryItems[idx].name;
-                document.getElementById('modalItemPrice').value = deliveryItems[idx].price;
-                document.getElementById('modalItemWeight').value = deliveryItems[idx].weight || '';
-            } else {
-                // Режим добавления
-                title.innerText = 'Новая позиция';
-                document.getElementById('modalItemName').value = '';
-                document.getElementById('modalItemPrice').value = '';
-                document.getElementById('modalItemWeight').value = '';
-            }
-            
-            modal.classList.remove('hidden');
-            document.body.classList.add('modal-open');
-        }
-
-        function closeItemModal() {
-            document.getElementById('itemModal').classList.add('hidden');
-            document.body.classList.remove('modal-open');
-        }
-
-        function saveItem() {
-            const name = document.getElementById('modalItemName').value.trim();
-            const price = parseFloat(document.getElementById('modalItemPrice').value) || 0;
-            const weightVal = document.getElementById('modalItemWeight').value;
-            const weight = weightVal === '' ? 0 : parseFloat(weightVal);
-            
-            if(!name) { 
-                alert('Пожалуйста, введите название позиции'); 
-                return; 
-            }
-
-            if (editingIdx >= 0) {
-                // Обновляем существующую
-                deliveryItems[editingIdx].name = name;
-                deliveryItems[editingIdx].price = price;
-                deliveryItems[editingIdx].weight = weight;
-            } else {
-                // Создаем новую
-                deliveryItems.push({
-                    name: name,
-                    price: price,
-                    weight: weight,
-                    qty: 1
-                });
-                
-                // Раскрываем корзину на мобилках при первом добавлении
-                if (window.innerWidth <= 768) {
-                    const widget = document.getElementById('esCartWidget');
-                    if (!widget.classList.contains('is-open')) toggleMobileCart();
-                }
-            }
-            
-            closeItemModal();
+        window.clearCalculator = function(e) {
+            if (e) e.stopPropagation();
+            quantities = {};
             renderItems();
             updateSummary();
-        }
-
-        window.clearCalculator = function(e) { 
-            if(e) e.stopPropagation(); 
-            deliveryItems.forEach(item => item.qty = 0);
-            renderItems(); 
-            updateSummary();
-            
-            if(window.innerWidth <= 768) {
+            if (window.innerWidth <= 768) {
                 document.getElementById('esCartWidget').classList.remove('is-open');
                 document.getElementById('mobile-cart-arrow').style.transform = 'rotate(0deg)';
             }
-        }
+        };
 
         window.toggleMobileCart = function() {
-            if(window.innerWidth <= 768) {
+            if (window.innerWidth <= 768) {
                 const widget = document.getElementById('esCartWidget');
                 const arrow = document.getElementById('mobile-cart-arrow');
                 widget.classList.toggle('is-open');
                 arrow.style.transform = widget.classList.contains('is-open') ? 'rotate(180deg)' : 'rotate(0deg)';
             }
+        };
+
+        // ==========================================
+        // 6. СОЗДАНИЕ, РЕДАКТИРОВАНИЕ И УДАЛЕНИЕ ПОЗИЦИЙ
+        // ==========================================
+        function openAddModal() {
+            editingItemId = null;
+            document.getElementById('item-modal-title').innerText = 'Новая позиция';
+            document.getElementById('save-btn-text').innerText = 'Добавить';
+            document.getElementById('item-name-input').value = '';
+            document.getElementById('item-price-input').value = '';
+            document.getElementById('item-weight-input').value = '';
+            document.getElementById('modal-error').classList.add('hidden');
+            document.getElementById('item-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('item-name-input').focus(), 50);
+        }
+
+        function openEditModal(id) {
+            const item = deliveryItems.find(i => i.id === id);
+            if (!item) return;
+
+            editingItemId = id;
+            document.getElementById('item-modal-title').innerText = 'Редактировать позицию';
+            document.getElementById('save-btn-text').innerText = 'Сохранить изменения';
+            document.getElementById('item-name-input').value = item.name || '';
+            document.getElementById('item-price-input').value = Math.round(Number(item.price) || 0);
+            document.getElementById('item-weight-input').value = (item.weight !== null && item.weight !== undefined && Number(item.weight) > 0) ? item.weight : '';
+            document.getElementById('modal-error').classList.add('hidden');
+            document.getElementById('item-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('item-name-input').focus(), 50);
+        }
+
+        function closeItemModal() {
+            editingItemId = null;
+            document.getElementById('item-modal').classList.add('hidden');
+        }
+
+        async function saveCalcItem() {
+            const name = document.getElementById('item-name-input').value.trim();
+            const priceRaw = document.getElementById('item-price-input').value.trim();
+            const weightRaw = document.getElementById('item-weight-input').value.trim();
+            const errEl = document.getElementById('modal-error');
+            const saveBtn = document.getElementById('save-btn');
+            const saveBtnText = document.getElementById('save-btn-text');
+
+            if (!name || priceRaw === '') {
+                errEl.innerText = 'Укажите название и цену позиции';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            const price = Math.max(0, Number(priceRaw) || 0);
+            const weight = weightRaw !== '' && Number(weightRaw) > 0 ? Number(weightRaw) : null;
+
+            try {
+                saveBtn.disabled = true;
+                saveBtnText.innerText = 'Сохранение...';
+                setSyncIndicator(true);
+
+                if (editingItemId) {
+                    const existing = deliveryItems.find(i => i.id === editingItemId) || {};
+                    const updatedItem = {
+                        ...existing,
+                        id: editingItemId,
+                        name,
+                        price,
+                        weight
+                    };
+
+                    if (calcRef) {
+                        await calcRef.child(editingItemId).set(updatedItem);
+                    } else {
+                        const idx = deliveryItems.findIndex(i => i.id === editingItemId);
+                        if (idx !== -1) deliveryItems[idx] = updatedItem;
+                        renderItems();
+                        updateSummary();
+                    }
+                    closeItemModal();
+                    showToast('Позиция обновлена');
+                } else {
+                    const id = 'item_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5);
+                    const maxOrder = deliveryItems.reduce((max, i) => Math.max(max, i.order || 0), 0);
+                    const newItem = {
+                        id,
+                        name,
+                        price,
+                        weight,
+                        order: maxOrder + 1
+                    };
+
+                    if (calcRef) {
+                        await calcRef.child(id).set(newItem);
+                    } else {
+                        deliveryItems.push(newItem);
+                        renderItems();
+                        updateSummary();
+                    }
+                    closeItemModal();
+                    showToast('Новая позиция добавлена');
+                }
+            } catch (error) {
+                console.error('Ошибка сохранения позиции:', error);
+                errEl.innerText = 'Не удалось сохранить изменения.';
+                errEl.classList.remove('hidden');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtnText.innerText = editingItemId ? 'Сохранить изменения' : 'Добавить';
+                setSyncIndicator(false);
+            }
+        }
+
+        async function deleteCalcItem(id) {
+            const item = deliveryItems.find(i => i.id === id);
+            if (!item) return;
+            if (!confirm(`Удалить позицию «${item.name}» из калькулятора?`)) return;
+
+            try {
+                setSyncIndicator(true);
+                delete quantities[id];
+                if (calcRef) {
+                    await calcRef.child(id).remove();
+                } else {
+                    deliveryItems = deliveryItems.filter(i => i.id !== id);
+                    renderItems();
+                    updateSummary();
+                }
+                showToast('Позиция удалена');
+            } catch (error) {
+                console.error('Ошибка при удалении позиции:', error);
+                showToast('Ошибка при удалении');
+            } finally {
+                setSyncIndicator(false);
+            }
+        }
+
+        let toastTimer = null;
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const text = document.getElementById('toast-text');
+            text.innerText = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2500);
+        }
+
+        function escapeHtml(str) {
+            return String(str ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
 
         // ============================================
-        // ЛОГИКА СКРЫТИЯ/ПОКАЗА НАВИГАЦИИ ПРИ СКРОЛЛЕ
+        // 7. ЛОГИКА СКРЫТИЯ/ПОКАЗА ШАПКИ ПРИ СКРОЛЛЕ
         // ============================================
         let lastScrollTop = 0;
         const portalNav = document.getElementById('portal-nav');
+        const extraHeader = document.getElementById('main-header');
+
+        window.initScrollLayout = () => {
+            if (!portalNav) return;
+            const navH = portalNav.offsetHeight;
+            const headerH = extraHeader ? extraHeader.offsetHeight : 0;
+            
+            document.documentElement.style.setProperty('--nav-height', navH + 'px');
+            
+            document.querySelectorAll('.scroll-area').forEach(area => {
+                let spacer = area.querySelector('.safe-spacer');
+                if (!spacer) {
+                    spacer = document.createElement('div');
+                    spacer.className = 'safe-spacer shrink-0 w-full';
+                    area.insertBefore(spacer, area.firstChild);
+                }
+                spacer.style.height = (navH + headerH) + 'px';
+            });
+        };
 
         if (portalNav) {
-            const initScrollLayout = () => {
-                const navH = portalNav.offsetHeight;
-                document.body.style.setProperty('--nav-h', navH + 'px');
-                
-                document.querySelectorAll('.scroll-area').forEach(area => {
-                    let spacer = area.querySelector('.safe-spacer');
-                    if (!spacer) {
-                        spacer = document.createElement('div');
-                        spacer.className = 'safe-spacer shrink-0 w-full';
-                        area.insertBefore(spacer, area.firstChild);
-                    }
-                    spacer.style.height = navH + 'px';
-                });
-            };
-
-            setTimeout(initScrollLayout, 50);
-            window.addEventListener('resize', initScrollLayout);
+            setTimeout(window.initScrollLayout, 50);
+            window.addEventListener('resize', window.initScrollLayout);
 
             document.querySelectorAll('.scroll-area').forEach(scrollArea => {
                 scrollArea.addEventListener('scroll', function() {
@@ -441,20 +926,16 @@
 
                     if (currentScroll > lastScrollTop && currentScroll > 50) {
                         portalNav.style.transform = 'translateY(-100%)'; 
-                        document.body.classList.add('nav-hidden');
+                        if (extraHeader) extraHeader.style.transform = 'translateY(calc(-1 * var(--nav-height)))';
                     } else {
                         portalNav.style.transform = 'translateY(0)'; 
-                        document.body.classList.remove('nav-hidden');
+                        if (extraHeader) extraHeader.style.transform = 'translateY(0)';
                     }
                     
                     lastScrollTop = currentScroll;
                 }, { passive: true });
             });
         }
-
-        renderItems();
-        updateSummary();
-
     </script>
 </body>
 </html>
